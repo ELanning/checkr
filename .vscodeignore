@@ -1,0 +1,17 @@
+.vscode/**
+.vscode-test/**
+out/test/**
+src/**
+docs/**
+examples/**
+.gitignore
+.yarnrc
+yarn.lock
+.prettierrc
+checkr-workspace.code-workspace
+contributors.md
+README.md
+**/tsconfig.json
+**/.eslintrc.json
+**/*.map
+**/*.ts
