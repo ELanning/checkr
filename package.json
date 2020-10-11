@@ -3,7 +3,7 @@
 	"displayName": "checkr",
 	"description": "Custom static analysis made simple.",
 	"version": "0.0.1",
-	"icon": "https://github.com/ELanning/checkr/blob/master/images/icon.png",
+	"icon": "icon.png",
 	"engines": {
 		"vscode": "^1.49.0"
 	},
