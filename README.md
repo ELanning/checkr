@@ -2,7 +2,7 @@
 
 Custom static analysis rules for the lazy. Write project specific static analysis checks in a few lines of code.
 
-![Screenshot in action](https://github.com/ELanning/checkr/blob/master/docs/demo.png)
+![Screenshot in action](https://github.com/ELanning/checkr/blob/master/images/demo.png)
 
 ## Installation
 
