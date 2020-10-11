@@ -86,6 +86,11 @@ function readCheckrFiles(filePathSegments: string[]): Function[] {
 		try {
 			const checkrFileContents = fs.readFileSync(path, 'utf8');
 
+			// Prevents newly created checkr.js files from throwing errors.
+			if (checkrFileContents === '') {
+				continue;
+			}
+
 			// Warning: arrays of functions console.log as "[null, null, null]" when they are not actually null.
 			const evalChecks: Function[] = new Function(`return ${checkrFileContents}`)();
 
@@ -110,6 +115,7 @@ function readCheckrFiles(filePathSegments: string[]): Function[] {
 				);
 			}
 		} finally {
+			// Note this occurs even on continues.
 			segments.pop();
 		}
 	}

@@ -34,7 +34,7 @@
         let counter = 0; // Counter to mitigate excessive backtracking cases.
         let match;
         
-        while ((match = naiveFunctionCapture.exec(fileContents)) !== null) {
+        while ((match = naiveFunctionCapture.exec(fileContents)) != null) {
             counter++;
             if (counter > limit) {
                 break;

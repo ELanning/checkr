@@ -20,11 +20,11 @@ A checkr rule can result in less code review nits and catch entire classes of bu
 
 ## How
 
-On save and open, checkr looks for any `checkr.js` file in the current directory and iterates up to the root, applying any other `checkr.js` files along the way.
+On file save and open, checkr looks for a `checkr.js` file in the current directory and iterates up to the root, applying any other `checkr.js` files along the way.
 
 This means you can put global checks in the project root `checkr.js` file, but also have directory specific checks. For example `tests/checkr.js` only applies to files in the `tests` folder and its subdirectories.
 
-A `checkr.js` file should contain a single array of functions to run on save.
+A `checkr.js` file should contain a single array of functions to run on file save and open.
 
 Each function is passed the `file` being saved or opened, and a function to `underline` code.
 
