@@ -2,16 +2,56 @@
 	"name": "checkr",
 	"displayName": "checkr",
 	"description": "Custom static analysis made simple.",
-	"version": "0.0.1",
+	"author": "Erik Lanning",
+	"publisher": "checkr",
+	"version": "1.0.0",
 	"icon": "icon.png",
 	"engines": {
 		"vscode": "^1.49.0"
 	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/elanning/checkr.git"
+	},
+	"license": "MIT",
+	"bugs": {
+		"url": "https://github.com/elanning/checkr/issues"
+	},
 	"categories": [
-		"Other"
+		"Linters"
+	],
+	"keywords": [
+		"multi-root ready",
+		"checkr",
+		"javascript",
+		"js",
+		"jsx",
+		"flow",
+		"typescript",
+		"ts",
+		"json",
+		"css",
+		"less",
+		"scss",
+		"styled-components",
+		"styled-jsx",
+		"markdown",
+		"md",
+		"commonmark",
+		"mdx",
+		"php",
+		"pug",
+		"ruby",
+		"swift",
+		"html",
+		"vue",
+		"angular",
+		"graphql",
+		"yaml",
+		"yml"
 	],
 	"activationEvents": [
-		"onCommand:checkr.runAnalysis"
+		"onStartupFinished"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
