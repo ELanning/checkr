@@ -26,7 +26,7 @@ This means you can put global checks in the project root `checkr.js` file, but a
 
 A `checkr.js` file should contain a single array of functions to run on save.
 
-Each function is passed the `file` being saved, and a function to `underline` code.
+Each function is passed the `file` being saved or opened, and a function to `underline` code.
 
 ```
 file {
