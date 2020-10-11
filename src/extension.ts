@@ -2,16 +2,6 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const infoUnderlineStyle = {
-	color: 'invalid; border-bottom: dashed 1px #17a2b8',
-};
-const warnUnderlineStyle = {
-	color: 'invalid; border-bottom: dashed 1px #ffc107',
-};
-const errorUnderlineStyle = {
-	color: 'invalid; border-bottom: dashed 1px #dc3545',
-};
-
 export function activate(context: vscode.ExtensionContext) {
 	const disposable = vscode.commands.registerTextEditorCommand(
 		'checkr.runAnalysis',
@@ -127,6 +117,15 @@ function readCheckrFiles(filePathSegments: string[]): Function[] {
 	return checks;
 }
 
+const infoUnderlineStyle = {
+	color: 'invalid; border-bottom: dashed 1px #17a2b8',
+};
+const warnUnderlineStyle = {
+	color: 'invalid; border-bottom: dashed 1px #ffc107',
+};
+const errorUnderlineStyle = {
+	color: 'invalid; border-bottom: dashed 1px #dc3545',
+};
 type AlertLevel = 'info' | 'warn' | 'error';
 
 function underline(
