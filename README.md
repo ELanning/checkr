@@ -28,7 +28,7 @@ A `checkr.js` file should contain a single array of functions to run on file sav
 
 Each function is passed the `file` being saved or opened, and a function to `underline` code.
 
-```
+```javascript
 file {
     fileName: string,       // Eg "fooUtil".
     fileExtension: string,  // Eg "js", "css", the empty string, etc.
@@ -45,7 +45,7 @@ function underline(
 
 `checkr.js`
 
-```
+```javascript
 [
     function check1(file, underline) { ... },
     function check2(file, underline) { ... },
@@ -57,29 +57,34 @@ function underline(
 
 These are simple examples, but more advanced patterns are possible. For example, building dynamic regex based on `fileContents`, only running on certain files using regex checks, and more.
 
-```
+```javascript
 [
-    function timeZoneCasing({ fileExtension }, underline) {
-        if (fileExtension !== "js") return;
+	function timeZoneCasing({ fileExtension }, underline) {
+		if (fileExtension !== 'js') return;
 
-        underline("timezone", "Prefer timeZone casing", "error");
-    },
+		underline('timezone', 'Prefer timeZone casing', 'error');
+	},
 
-    function appendViewOnClasses({ fileExtension, fileContents }, underline) {
-        if (fileExtension !== "js") return;
+	function appendViewOnClasses({ fileExtension, fileContents }, underline) {
+		if (fileExtension !== 'js') return;
 
-        const invalidClassNames = /^export class.*(?<!View)$/g
-        underline(invalidClassNames, "exported class names in this directory must end with 'View'.", "warn");
-    },
+		const invalidClassNames = /^export class.*(?<!View)$/g;
+		underline(
+			invalidClassNames,
+			"exported class names in this directory must end with 'View'.",
+			'warn',
+		);
+	},
 
-    function checkLazyLoadImports({ fileExtension }, underline) {
-        if (fileExtension !== "jsx") return;
+	function checkLazyLoadImports({ fileExtension }, underline) {
+		if (fileExtension !== 'jsx') return;
 
-        const dangerousLazyLoadSet = /import\('.+'\).then\(set.+\)/g;
-        const hoverMessage = "Import should likely be\n `import('...').then(({ component }) => setIntegration(component))`";
-        underline(dangerousLazyLoadSet, hoverMessage, "info");
-    }
-]
+		const dangerousLazyLoadSet = /import\('.+'\).then\(set.+\)/g;
+		const hoverMessage =
+			"Import should likely be\n `import('...').then(({ component }) => setIntegration(component))`";
+		underline(dangerousLazyLoadSet, hoverMessage, 'info');
+	},
+];
 ```
 
 ## Best Practices
