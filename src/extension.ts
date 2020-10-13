@@ -163,7 +163,7 @@ function underline(
 	let counter = 0;
 	let match;
 	const existingMatches = new Set<string>();
-	while ((match = regex.exec(fileContents)) !== null) {
+	while ((match = regex.exec(fileContents)) != null) {
 		// Mitigate excessive backtracking cases.
 		counter++;
 		if (counter > limit) {
