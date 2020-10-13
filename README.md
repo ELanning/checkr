@@ -127,7 +127,6 @@ Feel free to take any ideas or invent your own:
 - Adding useful checks to the `examples/` folder.
 - More options to run at intervals or on other events.
 - Optimizations such as file caching.
-- Guide for running `checkr.js` files on pre-commit or on deploy pipelines.
 - Automatically fixing certain errors.
 
 To debug the extension, `git clone` the repo, open it in VS code, and press `F5`. `Ctrl+R` in the debug window reloads the extension.
