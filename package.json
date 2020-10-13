@@ -4,7 +4,7 @@
 	"description": "Custom static analysis made simple.",
 	"author": "Erik Lanning",
 	"publisher": "checkr",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"icon": "icon.png",
 	"engines": {
 		"vscode": "^1.49.0"
