@@ -16,11 +16,11 @@ Search for "checkr" in the VS Code extensions tab (Ctrl+Shift+X to open).
 2. Install [husky](https://github.com/typicode/husky) with `npm install husky --save-dev`
 3. Setup `package.json` with
 
-```json
-scripts: {
+```
+"scripts": {
   "hooks:pre-commit": "node ./hooks/checkr-hook.js",
 },
-husky: {
+"husky": {
   "pre-commit": "npm run hooks:pre-commit",
 },
 ```
