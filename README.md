@@ -1,4 +1,4 @@
-# checkr vs-code extension 🔍
+# checkr vs-code extension + git hook 🔍
 
 Custom static analysis rules for the lazy. Write project specific static analysis checks in a few lines of code.
 
@@ -6,11 +6,32 @@ Custom static analysis rules for the lazy. Write project specific static analysi
 
 ## Installation
 
+### Extension
+
 Search for "checkr" in the VS Code extensions tab (Ctrl+Shift+X to open).
+
+### Pre-commit hook
+
+1. Copy `checkr-hook.js` into your project hook folder (typically `/hooks`).
+2. Install [husky](https://github.com/typicode/husky) with `npm install husky --save-dev`
+3. Setup call the `checkr-hook.js` in `package.json`
+
+```json
+scripts: {
+  // ...
+  "hooks:pre-commit": "node ./hooks/checkr-hook.js",
+},
+husky: {
+  // ...
+  "pre-commit": "npm run hooks:pre-commit",
+}
+```
+
+That's it!
 
 ## Why
 
-Static analysis is a powerful tool for enforcing project consistency and finding common issues. Many powerful tools such as [ESLint](https://eslint.org/), [JSHint](https://jshint.com/), and others exist for this purpose.
+Static analysis is a powerful tool for enforcing project consistency and finding common issues. Many tools such as [ESLint](https://eslint.org/), [JSHint](https://jshint.com/), and others exist for this purpose.
 
 However, they frequently do not have project specific rules, and writing a [custom eslint-rule](https://eslint.org/docs/developer-guide/working-with-rules) for trivial checks requires more setup and prior knowledge than a `checkr.js` file.
 

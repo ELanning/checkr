@@ -54,7 +54,7 @@ export function activate(context: vscode.ExtensionContext) {
 			for (const check of checks) {
 				const isCheckrFile = fileName === 'checkr' && fileExtension === 'js';
 				if (isCheckrFile) {
-					continue; // Ommit checkr.js files from checks.
+					continue; // Omit checkr.js files from checks.
 				}
 
 				check(file, boundUnderline);
