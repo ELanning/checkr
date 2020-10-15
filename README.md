@@ -87,7 +87,7 @@ These are simple examples, but more advanced patterns are possible. For example,
 	function appendViewOnClasses({ fileExtension, fileContents }, underline) {
 		if (fileExtension !== 'js') return;
 
-		const invalidClassNames = /^export class.*(?<!View)$/g;
+		const invalidClassNames = /^export class.*(?<!View)$/gm;
 		underline(
 			invalidClassNames,
 			"exported class names in this directory must end with 'View'.",
