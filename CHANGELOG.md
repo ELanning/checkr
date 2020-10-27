@@ -11,3 +11,7 @@ All notable changes to the "checkr" extension will be documented in this file.
 ## [1.0.1]
 
 - Update documentation with notes on how to setup checkr `git` hooks.
+
+## [1.0.2]
+
+- Fix checkr not running on initially opened file.
