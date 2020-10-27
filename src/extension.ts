@@ -70,6 +70,9 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.commands.executeCommand('checkr.runAnalysis');
 	});
 
+	// Run command on activation, so that the first open file gets checked.
+	vscode.commands.executeCommand('checkr.runAnalysis');
+
 	context.subscriptions.push(disposable);
 }
 
