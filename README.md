@@ -56,7 +56,7 @@ file {
 }
 
 function underline(
-    fileOrRegex: RegExp | string,   // Eg /foo*bar/g or an exact string to match, such as "foobar".
+    regexOrText: RegExp | string,   // Eg /foo*bar/g or an exact string to match, such as "foobar".
     hoverMessage: string,           // Eg "Prefer bar".
     alert?: "error" | "warning" | "info"
 );
