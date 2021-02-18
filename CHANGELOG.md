@@ -15,3 +15,7 @@ All notable changes to the "checkr" extension will be documented in this file.
 ## [1.0.2]
 
 - Fix checkr not running on initially opened file.
+
+## [1.0.3]
+
+- Update `README.md` and cleanup package files.

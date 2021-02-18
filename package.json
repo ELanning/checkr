@@ -4,7 +4,7 @@
 	"description": "Custom static analysis made simple.",
 	"author": "Erik Lanning",
 	"publisher": "checkr",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"icon": "icon.png",
 	"engines": {
 		"vscode": "^1.49.0"
@@ -67,8 +67,7 @@
 		"compile": "tsc -p ./",
 		"lint": "eslint src --ext ts",
 		"watch": "tsc -watch -p ./",
-		"pretest": "yarn run compile && yarn run lint",
-		"test": "node ./out/test/runTest.js"
+		"pretest": "yarn run compile && yarn run lint"
 	},
 	"devDependencies": {
 		"@types/vscode": "^1.49.0",

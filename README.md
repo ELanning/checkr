@@ -1,7 +1,16 @@
 # checkr vs-code extension + git hook 🔍
 
-Custom static analysis rules for the lazy. Write project specific static analysis checks in a few lines of code.
+Write static analysis checks in a few lines of code.
 
+```javascript
+[
+	function timeZoneCasing({ fileExtension }, underline) {
+		if (fileExtension !== 'js') return;
+
+		underline('timezone', 'Prefer timeZone casing', 'error');
+	}
+]
+```
 ![Screenshot in action](demo.png)
 
 ## Installation
@@ -32,8 +41,6 @@ That's it!
 Static analysis is a powerful tool for enforcing project consistency and finding common issues. Many tools such as [ESLint](https://eslint.org/), [JSHint](https://jshint.com/), and others exist for this purpose.
 
 However, they frequently do not have project specific rules, and writing a [custom eslint-rule](https://eslint.org/docs/developer-guide/working-with-rules) for trivial checks requires more setup and prior knowledge than a `checkr.js` file.
-
-checkr bridges the gap between full on powerful AST analysis versus simple regex checks.
 
 A checkr rule can result in less code review nits and catch entire classes of bugs that code itself cannot.
 
@@ -129,7 +136,12 @@ Feel free to take any ideas or invent your own:
 - Optimizations such as file caching.
 - Automatically fixing certain errors.
 
-To debug the extension, `git clone` the repo, open it in VS code, and press `F5`. `Ctrl+R` in the debug window reloads the extension.
+To debug the extension:
+
+ 1. `git clone` the repo.
+ 1. Install `yarn` and run in it the project root. See `package.json` for a full list of commands.
+ 1. Open the project in VS code, and press `F5`.
+ 1. `Ctrl+R` in the debug window reloads the extension.
 
 ## Contact
 
