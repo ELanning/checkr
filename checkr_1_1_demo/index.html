@@ -1,0 +1,389 @@
+<html>
+<script>
+// NOTE: 2 + 2 is still a literal. Base literals refers to unchained literals.
+const baseLiterals = [
+	`"[\\s\\S]*?"`,
+	"'[\\s\\S]*?'",
+	'`[\\s\\S]*?`', // TODO: handle templates, eg styled`foobar`.
+	'-?\\d+([\\w\\.]*\\d*)*',
+	`\/[\\s\\S]*?\/`,
+	'true',
+	'false',
+	'NaN',
+	'undefined',
+	'null'
+];
+const baseLiteralRegex = `(${baseLiterals.join("|")})`;
+
+const unitaryOperators = ['++', '--', '~'];
+const binaryOperators = [
+	`+`,
+	'-',
+	`*`,
+	`**`,
+	`/`,
+	'%',
+	'=',
+	'==',
+	'===',
+	'!=',
+	'!==',
+	'>',
+	'<',
+	'>=',
+	'<=',
+	'&',
+	`|`,
+	'^',
+	'<<',
+	'>>',
+	'>>>'
+];
+// Excludes ternaries.
+const operatorRegex = `(${unitaryOperators.map(escapeRegExp).concat(binaryOperators.map(escapeRegExp)).join("|")})`;
+
+// Includes "future" reserved keywords.
+const keywords = [
+	'break',
+	'case',
+	'catch',
+	'class',
+	'const',
+	'continue',
+	'debugger',
+	'default',
+	'delete',
+	'do',
+	'else',
+	'export',
+	'extends',
+	'finally',
+	'for',
+	'function',
+	'if',
+	'import',
+	'in',
+	'instanceof',
+	'new',
+	'return',
+	'super',
+	'switch',
+	'this',
+	'throw',
+	'try',
+	'typeof',
+	'var',
+	'void',
+	'while',
+	'with',
+	'yield',
+	'enum',
+	'implements',
+	'interface',
+	'let',
+	'package',
+	'private',
+	'protected',
+	'public',
+	'static',
+	'yield',
+	'await'
+];
+const keywordRegex = `(${keywords.join('|')})`;
+const capturedVariableRegex = `(?!(?:do|if|in|for|let|new|try|var|case|else|enum|eval|false|null|this|true|void|with|break|catch|class|const|super|throw|while|yield|delete|export|import|public|return|static|switch|typeof|default|extends|finally|package|private|continue|debugger|function|arguments|interface|protected|implements|NaN|undefined|instanceof)$)([$A-Z_a-z]+[$A-Z_a-z0-9]*)`;
+
+function createNamedVariableRegex(name) {
+	// Greatly trimmed down and slightly modified from https://stackoverflow.com/questions/1661197/what-characters-are-valid-for-javascript-variable-names
+	return `(?!(?:do|if|in|for|let|new|try|var|case|else|enum|eval|false|null|this|true|void|with|break|catch|class|const|super|throw|while|yield|delete|export|import|public|return|static|switch|typeof|default|extends|finally|package|private|continue|debugger|function|arguments|interface|protected|implements|NaN|undefined|instanceof)$)(?<${name}>[$A-Z_a-z]+[$A-Z_a-z0-9]*)`;
+}
+
+function createNamedLiteralRegex(name) {
+	return `(?<${name}>${baseLiteralRegex})`;
+}
+
+function createNamedOperatorRegex(name) {
+	return `(?<${name}>${operatorRegex})`;
+}
+
+function createNamedKeywordRegex(name) {
+	return `(?<${name}>${keywordRegex})`;
+}
+
+// Copied from MDN docs.
+function escapeRegExp(theString) {
+	return theString.replace(/[.*+\-?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+}
+
+// Example usages:
+//	code`if ($a == $b) { return $a; }`;
+//	code`$#operator($1);`;
+function code(strings, ...expressions) {
+	let regexTranslation = strings[0];
+	for (i = 0; i < expressions.length; i++)
+		regexTranslation += expressions[i] + strings[i+1];
+
+	// Insert whitespace between literals, variables, and keywords.
+	// Makes it easier to deal with scenarios such as `a+10` or `++a`.
+	regexTranslation = regexTranslation.replaceAll(new RegExp(capturedVariableRegex, "g"), " $1 ")
+	regexTranslation = regexTranslation.replaceAll(new RegExp(`(${baseLiteralRegex})`, "g"), " $1 ")
+	regexTranslation = regexTranslation.replaceAll(new RegExp(`(${keywordRegex})`, "g"), " $1 ")
+
+	// Fix incorrect spacing added to special characters `$a`, `$1`, etc.
+	regexTranslation = regexTranslation.replaceAll("$ ", "$")
+	regexTranslation = regexTranslation.replaceAll("@ ", "@")
+	regexTranslation = regexTranslation.replaceAll("# ", "#")
+
+	// Insert whitespace between `{}`, `()`, and `[]`.
+	// Makes it easier to deal with scenarios such as `if()` vs `if ()`.
+	regexTranslation = regexTranslation.replaceAll('(', ' ( ');
+	regexTranslation = regexTranslation.replaceAll(')', ' ) ');
+	regexTranslation = regexTranslation.replaceAll('{', ' { ');
+	regexTranslation = regexTranslation.replaceAll('}', ' } ');
+	regexTranslation = regexTranslation.replaceAll('[', ' [ ');
+	regexTranslation = regexTranslation.replaceAll(']', ' ] ');
+
+	// Insert whitespace between `;`
+	regexTranslation = regexTranslation.replaceAll(";", " ; ");
+
+	// Handles overlap between JavaScript and RegExp. For example `+` needs to be escaped because it has a different meaning in RegExp.
+	// First, safe replace the custom symbols such as `$a`, `$1`, `$#a`, `$@a`, and `$$`.
+	regexTranslation = regexTranslation.replaceAll("$", "__<rep>__");  // Arbitary replacement sequence.
+	regexTranslation = escapeRegExp(regexTranslation);
+	regexTranslation = regexTranslation.replaceAll("__<rep>__", "$");
+
+	// Replace special characters, eg `$a`, `$1`, `$#a`, `$@a` etc.
+	regexTranslation = replaceVariablesWithRegex(regexTranslation);
+	regexTranslation = replaceLiteralsWithRegex(regexTranslation);
+	regexTranslation = replaceOperatorsWithRegex(regexTranslation);
+	regexTranslation = replaceKeywordsWithRegex(regexTranslation);
+	regexTranslation = regexTranslation.replaceAll('$$$', `[\\s\\S]*`);
+	regexTranslation = regexTranslation.replaceAll('$$', `[\\s\\S]*?`);
+
+	// Replace whitespace with lenient whitespace skips.
+	const lenientSkip = '[\\n\\r\\s]*';
+	regexTranslation = regexTranslation.replace(new RegExp('[\\n\\r\\s]+', 'g'), lenientSkip);
+
+	// Remove preceding and trailing whitespace matcher. Handles cases such as `if ($a == $b) { $$ }` doesn't match "if (foo == bar) { baz(); }   \n\n    "
+	if (regexTranslation.startsWith(lenientSkip))
+		regexTranslation = regexTranslation.replace('[\\n\\r\\s]*',"");
+
+	if (regexTranslation.endsWith(lenientSkip))
+		regexTranslation = regexTranslation.substring(0, regexTranslation.length - lenientSkip.length);
+
+	// Return regex, but override the destructuring operator.
+	return new RegExp(regexTranslation, "g");
+}
+
+// Converts code variable matchers such as $a, $b, $foo, etc with regex.
+// Handles complex replacements such as repeated variable captures, eg `$a == $a`.
+function replaceVariablesWithRegex(codeString) {
+	const captureRegex = /\$([a-zA-z]+[0-9_]*)/g;
+	const matches = codeString.match(captureRegex);
+	if (matches == null)
+		return codeString;
+
+	const encounteredVariables = new Set();
+	let result = codeString;
+
+	for (const match of matches) {
+		if (encounteredVariables.has(match)) {
+			// Replace match with back reference, eg `$foobar` becomes `\k<_foobar>`.
+			result = result.replace(match, `\\k<_${match.replace('$', '')}>`);
+		} else {
+			// Replace match with variable regex, eg `$foobar` becomes `(?<_foobar>VAR_REGEX_STRING)`.
+			result = result.replace(match, createNamedVariableRegex(`_${match.replace('$', '')}`))
+			encounteredVariables.add(match);
+		}
+	}
+
+	return result;
+}
+
+// Converts code literal matchers such as $1, $2, $99, etc with regex.
+// Handles complex replacements such as repeated literal captures, eg `$1 == $1`.
+function replaceLiteralsWithRegex(codeString) {
+	const captureRegex = /\$([0-9]+)/g;
+	const matches = codeString.match(captureRegex);
+	if (matches == null)
+		return codeString;
+
+	const encounteredLiterals = new Set();
+	let result = codeString;
+
+	for (const match of matches) {
+		if (encounteredLiterals.has(match)) {
+			// Replace match with back reference, eg `$1` becomes `\k<__1>`.
+			result = result.replace(match, `\\k<__${match.replace('$', '')}>`);
+		} else {
+			// Replace match with literal regex, eg `$1` becomes `(?<__1>LITERAL_REGEX_STRING)`.
+			result = result.replace(match, createNamedLiteralRegex(`__${match.replace('$', '')}`))
+			encounteredLiterals.add(match);
+		}
+	}
+
+	return result;
+}
+
+// Converts code operator matchers such as $@op, $@operator10, etc with regex.
+// Handles complex replacements such as repeated operator captures, eg `$@op $a $@op`.
+function replaceOperatorsWithRegex(codeString) {
+	const captureRegex = /\$@([a-zA-z]+[0-9_]*)/g;
+	const matches = codeString.match(captureRegex);
+	if (matches == null)
+		return codeString;
+
+	const encounteredOperators = new Set();
+	let result = codeString;
+
+	for (const match of matches) {
+		if (encounteredOperators.has(match)) {
+			// Replace match with back reference, eg `$@op` becomes `\k<___op>`.
+			result = result.replace(match, `\\k<___${match.replace('$@', '')}>`);
+		} else {
+			// Replace match with literal regex, eg `$@op` becomes `(?<___op>OPERATOR_REGEX_STRING)`.
+			result = result.replace(match, createNamedOperatorRegex(`___${match.replace('$@', '')}`))
+			encounteredOperators.add(match);
+		}
+	}
+
+	return result;
+}
+
+// Converts code keyword matchers such as $#a, $#b, $#keyword1, etc with regex.
+// Handles complex replacements such as repeated keyword captures, eg `$#keyword1 { $$ } $#keyword1`.
+function replaceKeywordsWithRegex(codeString) {
+	const captureRegex = /\$#([a-zA-z]+[0-9_]*)/g;
+	const matches = codeString.match(captureRegex);
+	if (matches == null)
+		return codeString;
+		
+	const encounteredKeywords = new Set();
+	let result = codeString;
+
+	for (const match of matches) {
+		if (encounteredKeywords.has(match)) {
+			// Replace match with back reference, eg `$#keyword` becomes `\k<____keyword>`.
+			result = result.replace(match, `\\k<____${match.replace('$#', '')}>`);
+		} else {
+			// Replace match with literal regex, eg `$#keyword` becomes `(?<____keyword>KEYWORD_REGEX_STRING)`.
+			result = result.replace(match, createNamedKeywordRegex(`____${match.replace('$#', '')}`))
+			encounteredKeywords.add(match);
+		}
+	}
+
+	return result;
+}
+
+/******* TESTS *******/
+function assertMatch(regex, str) {
+	if (!regex.test(str))
+		throw new Error(`"${regex}" did not match:\n"${str}"`);
+}
+
+// test overlapping symbols, eg `+` in javascript vs `+` in regex.
+assertMatch(code`5+5*2`, `5 + 5 * 2`);
+
+// disallow assignment operators in conditional expressions
+assertMatch(code`$$ ? $a = $b : $$`, `foobar ? var1 = var2 : 5`);
+assertMatch(code`$$ ? $$ : $a = $b`, `bazBar() ? bop() : foo = bar`);
+
+// disallow constant expressions in conditions
+assertMatch(code`if ($1$@op$2)`, `if (5+5)`);
+assertMatch(code`if ($1 $@op $2)`, `if (""+3.02)`);
+assertMatch(code`if ($1)`, `if(true)`);
+
+// disallow duplicate arguments in `function` definitions
+assertMatch(code`function $a($b $$ $b)`, `function useFoo(first, second, first)`);
+
+// disallow duplicate case labels
+assertMatch(code`
+	case $1:
+		$$
+	case $1:
+`, "case 5: console.log(333) break; case 5: break;");
+
+// disallow reassigning exceptions in `catch` clauses
+assertMatch(code`catch ($e) { $e = $b $$ }`, "catch (e) { e = getError(); }");
+
+// disallow unreachable code after `return`, `throw`, `continue`, and `break` statements
+// doesn't handle undefined returns, unfortunately.
+assertMatch(code`{ $$$ return $$; $$ }`, `
+	{
+		if (false) {
+			return false;
+		}
+
+		return true;
+
+		throw Error('unreachable!');
+	}`)
+
+// disallow returning values from setters
+assertMatch(code`set $a($$) { $$ return $$; }`, `set current(name) { console.log(name); return name; }`);
+
+// disallow returning values from Promise executor functions
+assertMatch(code`
+new Promise($$ => {
+	$$ return $$; $$
+});
+`, `
+new Promise((resolve, reject) => {
+    if (someCondition) {
+        return defaultResult;
+    }
+    getSomething((err, result) => {
+        if (err) {
+            reject(err);
+        } else {
+            resolve(result);
+        }
+    });
+});
+`)
+
+// enforce a maximum depth that blocks can be nested
+assertMatch(code`
+{$$
+	{$$
+		{$$
+			{
+				$$
+			}
+		$$}
+	$$}
+$$}`, `
+{
+	let x = 5;
+	{
+		let y = 4;
+		{
+			let z = 10;
+			{
+				let f = 100.4;
+			}
+		}
+	}
+}`);
+
+// enforce consistent naming for boolean props
+assertMatch(code`$a: PropTypes.bool$$`, `
+MyComponent.propTypes = {
+	optionalBool: PropTypes.bool,
+	bazBar: PropTypes.number,
+};
+`)
+
+// prevent usage of button elements without an explicit type attribute
+assertMatch(code`<button $$>`, `<button>Hello world</button>`)
+
+// enforce consistent usage of destructuring assignment of props, state, and context
+assertMatch(code`function $a($$ props $$) { $$ }`, `
+	function MyComponent(props, context) {
+		...	
+	}
+`)
+
+// 
+</script>
+	<textarea id="testInput"></textarea><button onclick="code`${document.getElementById('testInput').value};`">Test</button>
+</html>
