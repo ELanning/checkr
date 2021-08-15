@@ -145,14 +145,14 @@ export function code(strings, ...expressions) {
 
     // Insert whitespace between literals, variables, and keywords.
     // Makes it easier to deal with scenarios such as `a+10` or `++a`.
-    regexTranslation = regexTranslation.replaceAll(new RegExp(capturedVariableRegex, "g"), " $1 ")
-    regexTranslation = regexTranslation.replaceAll(new RegExp(`(${baseLiteralRegex})`, "g"), " $1 ")
-    regexTranslation = regexTranslation.replaceAll(new RegExp(`(${keywordRegex})`, "g"), " $1 ")
+    regexTranslation = regexTranslation.replaceAll(new RegExp(capturedVariableRegex, "g"), " $1 ");
+    regexTranslation = regexTranslation.replaceAll(new RegExp(`(${baseLiteralRegex})`, "g"), " $1 ");
+    regexTranslation = regexTranslation.replaceAll(new RegExp(`(${keywordRegex})`, "g"), " $1 ");
 
     // Fix incorrect spacing added to special characters `$a`, `$1`, etc.
-    regexTranslation = regexTranslation.replaceAll("$ ", "$")
-    regexTranslation = regexTranslation.replaceAll("@ ", "@")
-    regexTranslation = regexTranslation.replaceAll("# ", "#")
+    regexTranslation = regexTranslation.replaceAll("$ ", "$");
+    regexTranslation = regexTranslation.replaceAll("@ ", "@");
+    regexTranslation = regexTranslation.replaceAll("# ", "#");
 
     // Insert whitespace between `{}`, `()`, and `[]`.
     // Makes it easier to deal with scenarios such as `if()` vs `if ()`.
@@ -195,41 +195,46 @@ export function code(strings, ...expressions) {
 
     const extendedRegex = new RegExp(regexTranslation, "g") as any;
     extendedRegex.matchAll = function (str) {
-        const captures = [];
-        const matches = str.matchAll(extendedRegex);
-
-        for (const match of matches) {
-            const results = {
-                variables: [],
-                literals: [],
-                keywords: [],
-                operators: [],
-                blocks: [],
-                others: []
-            }
-            for (const [kind, value] of Object.entries(match.groups)) {
-                // Warning: `if` order matters.
-                if (kind.startsWith(blockPrefix)) {
-                    results.blocks.push(value);
-                } else if (kind.startsWith(keywordPrefix)) {
-                    results.keywords.push(value);
-                } else if (kind.startsWith(operatorPrefix)) {
-                    results.operators.push(value);
-                } else if (kind.startsWith(literalPrefix)) {
-                    results.literals.push(value);
-                } else if (kind.startsWith(variablePrefix)) {
-                    results.variables.push(value);
-                } else {
-                    results.others.push(value);
-                }
-            }
-            captures.push(results);
-        }
-
-        return captures;
-    }
+        return [...str.matchAll(extendedRegex)].map(parseMatch);
+    };
+    extendedRegex.matchFirst = function (str) {
+        return parseMatch(str.match(extendedRegex));
+    };
 
     return extendedRegex;
+}
+
+function parseMatch(match) {
+    if (match == null || match.groups == null)
+        return null;
+
+    const results = {
+        variables: [],
+        literals: [],
+        keywords: [],
+        operators: [],
+        blocks: [],
+        others: []
+    };
+
+    for (const [kind, value] of Object.entries(match.groups)) {
+        // Warning: `if` order matters.
+        if (kind.startsWith(blockPrefix)) {
+            results.blocks.push(value);
+        } else if (kind.startsWith(keywordPrefix)) {
+            results.keywords.push(value);
+        } else if (kind.startsWith(operatorPrefix)) {
+            results.operators.push(value);
+        } else if (kind.startsWith(literalPrefix)) {
+            results.literals.push(value);
+        } else if (kind.startsWith(variablePrefix)) {
+            results.variables.push(value);
+        } else {
+            results.others.push(value);
+        }
+    }
+
+    return results;
 }
 
 // Converts code variable matchers such as $a, $b, $foo, etc with regex.
@@ -245,10 +250,10 @@ function replaceVariablesWithRegex(codeString) {
 
     for (const match of matches) {
         if (encounteredVariables.has(match)) {
-            // Replace match with back reference, eg `$foobar` becomes `\k<_foobar>`.
+            // Replace match with back reference, eg `$foobar` becomes `\k<PREFIX_foobar>`.
             result = result.replace(match, `\\k<${variablePrefix}${match.replace('$', '')}>`);
         } else {
-            // Replace match with variable regex, eg `$foobar` becomes `(?<_foobar>VAR_REGEX_STRING)`.
+            // Replace match with variable regex, eg `$foobar` becomes `(?<PREFIX_foobar>VAR_REGEX_STRING)`.
             result = result.replace(match, createNamedVariableRegex(`${variablePrefix}${match.replace('$', '')}`))
             encounteredVariables.add(match);
         }
@@ -270,10 +275,10 @@ function replaceLiteralsWithRegex(codeString) {
 
     for (const match of matches) {
         if (encounteredLiterals.has(match)) {
-            // Replace match with back reference, eg `$1` becomes `\k<__1>`.
+            // Replace match with back reference, eg `$1` becomes `\k<PREFIX_1>`.
             result = result.replace(match, `\\k<${literalPrefix}${match.replace('$', '')}>`);
         } else {
-            // Replace match with literal regex, eg `$1` becomes `(?<__1>LITERAL_REGEX_STRING)`.
+            // Replace match with literal regex, eg `$1` becomes `(?<PREFIX_1>LITERAL_REGEX_STRING)`.
             result = result.replace(match, createNamedLiteralRegex(`${literalPrefix}${match.replace('$', '')}`))
             encounteredLiterals.add(match);
         }
@@ -295,10 +300,10 @@ function replaceOperatorsWithRegex(codeString) {
 
     for (const match of matches) {
         if (encounteredOperators.has(match)) {
-            // Replace match with back reference, eg `$@op` becomes `\k<___op>`.
+            // Replace match with back reference, eg `$@op` becomes `\k<PREFIX_op>`.
             result = result.replace(match, `\\k<${operatorPrefix}${match.replace('$@', '')}>`);
         } else {
-            // Replace match with literal regex, eg `$@op` becomes `(?<___op>OPERATOR_REGEX_STRING)`.
+            // Replace match with literal regex, eg `$@op` becomes `(?<PREFIX_op>OPERATOR_REGEX_STRING)`.
             result = result.replace(match, createNamedOperatorRegex(`${operatorPrefix}${match.replace('$@', '')}`))
             encounteredOperators.add(match);
         }
@@ -320,10 +325,10 @@ function replaceKeywordsWithRegex(codeString) {
 
     for (const match of matches) {
         if (encounteredKeywords.has(match)) {
-            // Replace match with back reference, eg `$#keyword` becomes `\k<____keyword>`.
+            // Replace match with back reference, eg `$#keyword` becomes `\k<PREFIX_keyword>`.
             result = result.replace(match, `\\k<${keywordPrefix}${match.replace('$#', '')}>`);
         } else {
-            // Replace match with literal regex, eg `$#keyword` becomes `(?<____keyword>KEYWORD_REGEX_STRING)`.
+            // Replace match with literal regex, eg `$#keyword` becomes `(?<PREFIX_keyword>KEYWORD_REGEX_STRING)`.
             result = result.replace(match, createNamedKeywordRegex(`${keywordPrefix}${match.replace('$#', '')}`))
             encounteredKeywords.add(match);
         }
