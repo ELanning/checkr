@@ -153,6 +153,7 @@ function testRequireTypeAttribute() {
 
 	const checkIsValid = (match) => match.blocks.every((x) => x.includes('type='));
 	const validButtonCount = code`<button $$>`.matchAll(sampleCodeBlock).filter(checkIsValid).length;
+
 	assert(validButtonCount === 2);
 }
 
@@ -169,34 +170,33 @@ function InvalidReactComponent(props) {
 }`;
 
 	const checkIsValid = (match) => match.blocks.some((x) => x.includes('= props;'));
-	const validComponentCount = code`function $a($$ props $$) { $$ }`
+	const validComponentCount = code`function $a($$ props $$) { $$$ }`
 		.matchAll(sampleCodeBlock)
 		.filter(checkIsValid).length;
+
 	assert(validComponentCount === 1);
 }
 
 // Exported classes must end with `View`.
-testConsistentExportName();
-function testConsistentExportName() {
-	const sampleCodeBlock = `
+assertMatch(
+	code`export function $a View($$) { $$$ }`,
+	`
 export function HomepageView(props, context) {
 	const { propOne, propTwo, propThree } = props;
 	return <div>{propOne + propTwo + propThree}</div>;
-}
+}`,
+);
+assertNotMatch(
+	code`export function $a View($$) { $$$ }`,
+	`
 export function Account(props) {
 	return <div>{props.propOne + props.propTwo}</div>;
-}`;
-
-	const checkIsValid = (match) => match.variables.all((x) => x.endsWith('View'));
-	const validExportCount = code`export function $a($$) { $$ }`
-		.matchAll(sampleCodeBlock)
-		.filter(checkIsValid).length;
-	assert(validExportCount === 1);
-}
+}`,
+);
 
 // Enforce all defaultProps have a corresponding non-required PropType.
 assertMatch(
-	`propTypes = {$$ $a: $$.isRequired $$} $$ defaultProps = { $$ $a: $$ }`,
+	code`propTypes = {$$ $a: $$.isRequired $$} $$ defaultProps = { $$ $a: $$ }`,
 	`
 class Greeting extends React.Component {
 	render() {
@@ -231,7 +231,7 @@ export function Account(props) {
 }`;
 
 	const checkIsValid = (match) =>
-		match.variables.all((x) => {
+		match.variables.every((x) => {
 			const isReactComponent = /[A-Z]/.test(x[0]);
 			const hasDisplayName = code`${x}.displayName =`.matchAll(sampleCodeBlock).length !== 0;
 			return isReactComponent && hasDisplayName;
@@ -239,6 +239,7 @@ export function Account(props) {
 	const validDisplayNameCount = code`export function $a($$) { $$ }`
 		.matchAll(sampleCodeBlock)
 		.filter(checkIsValid).length;
+
 	assert(validDisplayNameCount === 1);
 }
 
@@ -255,13 +256,14 @@ function BazComponent(props) {
 }`;
 
 	const checkIsValid = (match) =>
-		match.variables.all((x) => {
+		match.variables.every((x) => {
 			const isReactComponent = /[A-Z]/.test(x[0]);
 			return !isReactComponent;
 		});
 	const validComponentCount = code`function $$($$) { $$ <$a className=$$ }`
 		.matchAll(sampleCodeBlock)
 		.filter(checkIsValid).length;
+
 	assert(validComponentCount === 1);
 }
 
@@ -327,7 +329,7 @@ BazComponent.defaultProps = {
 			.flat();
 		const defaults = code`$a: $$`
 			.matchAll(defaultProps)
-			.filter((x) => x.variables.all((variable) => nonrequiredProps.includes(variable)));
+			.filter((x) => x.variables.every((variable) => nonrequiredProps.includes(variable)));
 
 		return nonrequiredProps.length === defaults.length;
 	};
@@ -335,6 +337,7 @@ BazComponent.defaultProps = {
 		code`function $a($$) { $$ } $$ $a.propTypes = { $$ } $$ $a.defaultProps = { $$ }`
 			.matchAll(sampleCodeBlock)
 			.filter(checkIsValid).length;
+
 	assert(validComponentCount === 1);
 }
 
@@ -360,7 +363,7 @@ function NOTPASCALCASE(props) {
 }`;
 
 	const checkIsValid = (match) =>
-		match.variables.all((x) => {
+		match.variables.every((x) => {
 			const startsWithUpper = /[A-Z]/.test(x[0]);
 			const followedByNoneOrNonupper = x.length === 1 ? true : !/[A-Z]/.test(x[1]);
 			return startsWithUpper && followedByNoneOrNonupper;
@@ -368,6 +371,7 @@ function NOTPASCALCASE(props) {
 	const validComponentCount = code`function $a($$) { $$<$$ }`
 		.matchAll(sampleCodeBlock)
 		.filter(checkIsValid).length;
+
 	assert(validComponentCount === 2);
 }
 
@@ -407,6 +411,7 @@ BazComponent.defaultProps = {
 	const validComponentCount = code`function $a($$) { $$ } $$ $a.defaultProps = { $$ }`
 		.matchAll(sampleCodeBlock)
 		.filter(checkIsValid).length;
+
 	assert(validComponentCount === 1);
 }
 
@@ -414,8 +419,8 @@ BazComponent.defaultProps = {
 testCatchUnsafeTargetBlank();
 function testCatchUnsafeTargetBlank() {
 	const sampleCodeBlock = `
-const Valid1 = <a target="_blank" rel="noreferrer" href="http://example.com"></a>;
-const Valid2 = <a target="_blank" rel="noopener noreferrer" href="http://example.com"></a>;
+const Valid1 = <a target='_blank' rel="noreferrer" href="http://example.com"></a>;
+const Valid2 = <a target='_blank' rel="noopener noreferrer" href="http://example.com"></a>;
 
 const Invalid1 = <a target='_blank' href="http://example.com/"></a>;
 const Invalid2 = <a target='_blank' href={dynamicLink}></a>;`;
@@ -424,6 +429,7 @@ const Invalid2 = <a target='_blank' href={dynamicLink}></a>;`;
 	const validComponentCount = code`<a $$ target='_blank' $$>`
 		.matchAll(sampleCodeBlock)
 		.filter(checkIsValid).length;
+
 	assert(validComponentCount === 2);
 }
 
@@ -440,12 +446,14 @@ function testEnforceHandlerConvention() {
 <InvalidTwo onChange={this.componentChanged} />`;
 
 	const checkIsValid = (match) => {
-		const variableName = match.blocks[2];
-		return code`handle`.test(variableName) || code`on`.test(variableName);
+		const pieces = match.blocks[1].split('.');
+		const variableName = pieces[pieces.length - 1];
+		return variableName.startsWith('handle') || variableName.startsWith('on');
 	};
-	const validHandlerPropNameCount = code`<$$ on$$={$$} $$>`
+	const validHandlerPropNameCount = code`<$a on$$={$$} $$>`
 		.matchAll(sampleCodeBlock)
 		.filter(checkIsValid).length;
+
 	assert(validHandlerPropNameCount === 2);
 }
 

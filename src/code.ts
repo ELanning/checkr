@@ -240,7 +240,7 @@ function parseMatch(match) {
 // Converts code variable matchers such as $a, $b, $foo, etc with regex.
 // Handles complex replacements such as repeated variable captures, eg `$a == $a`.
 function replaceVariablesWithRegex(codeString) {
-    const captureRegex = /\$([a-zA-z]+[0-9_]*)/g;
+    const captureRegex = /\$([a-zA-Z]+[0-9_]*)/g;
     const matches = codeString.match(captureRegex);
     if (matches == null)
         return codeString;
@@ -290,7 +290,7 @@ function replaceLiteralsWithRegex(codeString) {
 // Converts code operator matchers such as $@op, $@operator10, etc with regex.
 // Handles complex replacements such as repeated operator captures, eg `$@op $a $@op`.
 function replaceOperatorsWithRegex(codeString) {
-    const captureRegex = /\$@([a-zA-z]+[0-9_]*)/g;
+    const captureRegex = /\$@([a-zA-Z]+[0-9_]*)/g;
     const matches = codeString.match(captureRegex);
     if (matches == null)
         return codeString;
@@ -315,7 +315,7 @@ function replaceOperatorsWithRegex(codeString) {
 // Converts code keyword matchers such as $#a, $#b, $#keyword1, etc with regex.
 // Handles complex replacements such as repeated keyword captures, eg `$#keyword1 { $$ } $#keyword1`.
 function replaceKeywordsWithRegex(codeString) {
-    const captureRegex = /\$#([a-zA-z]+[0-9_]*)/g;
+    const captureRegex = /\$#([a-zA-Z]+[0-9_]*)/g;
     const matches = codeString.match(captureRegex);
     if (matches == null)
         return codeString;

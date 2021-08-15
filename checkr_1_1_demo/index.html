@@ -1,344 +1,331 @@
 <html>
 <script>
-	// NOTE: 2 + 2 is still a literal. Base literals refers to unchained literals.
-	const baseLiterals = [
-		`"[\\s\\S]*?"`,
-		"'[\\s\\S]*?'",
-		'`[\\s\\S]*?`', // TODO: handle templates, eg styled`foobar`.
-		'-?\\d+([\\w\\.]*\\d*)*',
-		`\/[\\s\\S]*?\/`,
-		'true',
-		'false',
-		'NaN',
-		'undefined',
-		'null'
-	];
-	const baseLiteralRegex = `(${baseLiterals.join("|")})`;
+// NOTE: 2 + 2 is still a literal. Base literals refers to unchained literals.
+const baseLiterals = [
+    `"[\\s\\S]*?"`,
+    "'[\\s\\S]*?'",
+    '`[\\s\\S]*?`', // TODO: handle templates, eg styled`foobar`.
+    '-?\\d+([\\w\\.]*\\d*)*',
+    `\/[\\s\\S]*?\/`,
+    'true',
+    'false',
+    'NaN',
+    'undefined',
+    'null'
+];
+const baseLiteralRegex = `(${baseLiterals.join("|")})`;
 
-	const unitaryOperators = ['++', '--', '~'];
-	const binaryOperators = [
-		`+`,
-		'-',
-		`*`,
-		`**`,
-		`/`,
-		'%',
-		'=',
-		'==',
-		'===',
-		'!=',
-		'!==',
-		'>',
-		'<',
-		'>=',
-		'<=',
-		'&',
-		`|`,
-		'^',
-		'<<',
-		'>>',
-		'>>>'
-	];
-	// Excludes ternaries.
-	const operatorRegex = `(${unitaryOperators.map(escapeRegExp).concat(binaryOperators.map(escapeRegExp)).join("|")})`;
+const unitaryOperators = ['++', '--', '~'];
+const binaryOperators = [
+    `+`,
+    '-',
+    `*`,
+    `**`,
+    `/`,
+    '%',
+    '=',
+    '==',
+    '===',
+    '!=',
+    '!==',
+    '>',
+    '<',
+    '>=',
+    '<=',
+    '&',
+    `|`,
+    '^',
+    '<<',
+    '>>',
+    '>>>'
+];
+// Excludes ternaries.
+const operatorRegex = `(${unitaryOperators.map(escapeRegExp).concat(binaryOperators.map(escapeRegExp)).join("|")})`;
 
-	// Includes "future" reserved keywords.
-	const keywords = [
-		'break',
-		'case',
-		'catch',
-		'class',
-		'const',
-		'continue',
-		'debugger',
-		'default',
-		'delete',
-		'do',
-		'else',
-		'export',
-		'extends',
-		'finally',
-		'for',
-		'function',
-		'if',
-		'import',
-		'in',
-		'instanceof',
-		'new',
-		'return',
-		'super',
-		'switch',
-		'this',
-		'throw',
-		'try',
-		'typeof',
-		'var',
-		'void',
-		'while',
-		'with',
-		'yield',
-		'enum',
-		'implements',
-		'interface',
-		'let',
-		'package',
-		'private',
-		'protected',
-		'public',
-		'static',
-		'yield',
-		'await'
-	];
-	const keywordRegex = `(${keywords.join('|')})`;
-	const capturedVariableRegex = `(?!(?:do|if|in|for|let|new|try|var|case|else|enum|eval|false|null|this|true|void|with|break|catch|class|const|super|throw|while|yield|delete|export|import|public|return|static|switch|typeof|default|extends|finally|package|private|continue|debugger|function|arguments|interface|protected|implements|NaN|undefined|instanceof)$)([$A-Z_a-z]+[$A-Z_a-z0-9]*)`;
+// Includes "future" reserved keywords.
+const keywords = [
+    'break',
+    'case',
+    'catch',
+    'class',
+    'const',
+    'continue',
+    'debugger',
+    'default',
+    'delete',
+    'do',
+    'else',
+    'export',
+    'extends',
+    'finally',
+    'for',
+    'function',
+    'if',
+    'import',
+    'in',
+    'instanceof',
+    'new',
+    'return',
+    'super',
+    'switch',
+    'this',
+    'throw',
+    'try',
+    'typeof',
+    'var',
+    'void',
+    'while',
+    'with',
+    'yield',
+    'enum',
+    'implements',
+    'interface',
+    'let',
+    'package',
+    'private',
+    'protected',
+    'public',
+    'static',
+    'yield',
+    'await'
+];
+const keywordRegex = `(${keywords.join('|')})`;
+const capturedVariableRegex = `(?!(?:do|if|in|for|let|new|try|var|case|else|enum|eval|false|null|this|true|void|with|break|catch|class|const|super|throw|while|yield|delete|export|import|public|return|static|switch|typeof|default|extends|finally|package|private|continue|debugger|function|arguments|interface|protected|implements|NaN|undefined|instanceof)$)([$A-Z_a-z]+[$A-Z_a-z0-9]*)`;
 
-	const variablePrefix = "_";
-	const literalPrefix = "__";
-	const operatorPrefix = "___";
-	const keywordPrefix = "____"
-	const blockPrefix = "_____";
+const variablePrefix = "_";
+const literalPrefix = "__";
+const operatorPrefix = "___";
+const keywordPrefix = "____"
+const blockPrefix = "_____";
 
-	function createNamedVariableRegex(name) {
-		// Greatly trimmed down and slightly modified from https://stackoverflow.com/questions/1661197/what-characters-are-valid-for-javascript-variable-names
-		return `(?!(?:do|if|in|for|let|new|try|var|case|else|enum|eval|false|null|this|true|void|with|break|catch|class|const|super|throw|while|yield|delete|export|import|public|return|static|switch|typeof|default|extends|finally|package|private|continue|debugger|function|arguments|interface|protected|implements|NaN|undefined|instanceof)$)(?<${name}>[$A-Z_a-z]+[$A-Z_a-z0-9]*)`;
-	}
+function createNamedVariableRegex(name) {
+    // Greatly trimmed down and slightly modified from https://stackoverflow.com/questions/1661197/what-characters-are-valid-for-javascript-variable-names
+    return `(?!(?:do|if|in|for|let|new|try|var|case|else|enum|eval|false|null|this|true|void|with|break|catch|class|const|super|throw|while|yield|delete|export|import|public|return|static|switch|typeof|default|extends|finally|package|private|continue|debugger|function|arguments|interface|protected|implements|NaN|undefined|instanceof)$)(?<${name}>[$A-Z_a-z]+[$A-Z_a-z0-9]*)`;
+}
 
-	function createNamedLiteralRegex(name) {
-		return `(?<${name}>${baseLiteralRegex})`;
-	}
+function createNamedLiteralRegex(name) {
+    return `(?<${name}>${baseLiteralRegex})`;
+}
 
-	function createNamedOperatorRegex(name) {
-		return `(?<${name}>${operatorRegex})`;
-	}
+function createNamedOperatorRegex(name) {
+    return `(?<${name}>${operatorRegex})`;
+}
 
-	function createNamedKeywordRegex(name) {
-		return `(?<${name}>${keywordRegex})`;
-	}
+function createNamedKeywordRegex(name) {
+    return `(?<${name}>${keywordRegex})`;
+}
 
-	// Copied from MDN docs.
-	function escapeRegExp(theString) {
-		return theString.replace(/[.*+\-?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
-	}
+// Copied from MDN docs.
+function escapeRegExp(theString) {
+    return theString.replace(/[.*+\-?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+}
 
-	// Copied from https://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid
-	function uuidv4() {
-		return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
-			(c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
-		);
-	}
+function uniqueCaptureGroupName() {
+    // https://stackoverflow.com/a/57593036/16617265
+    return (new Date()).getTime().toString(36) + Math.random().toString(36).slice(2);
+}
 
-	function randCaptureGroupName() {
-		return uuidv4()
-			.replaceAll("-", "Z")
-			.replaceAll("1", "a")
-			.replaceAll("2", "b")
-			.replaceAll("3", "c")
-			.replaceAll("4", "d")
-			.replaceAll("5", "e")
-			.replaceAll("6", "f")
-			.replaceAll("7", "g")
-			.replaceAll("8", "h")
-			.replaceAll("9", "i")
-			.replaceAll("0", "j");
-	}
+// Example usages:
+//	code`if ($a == $b) { return $a; }`;
+//	code`$#operator($1);`;
+function code(strings, ...expressions) {
+    let regexTranslation = strings[0];
+    for (let i = 0; i < expressions.length; i++)
+        regexTranslation += expressions[i] + strings[i + 1];
 
-	// Example usages:
-	//	code`if ($a == $b) { return $a; }`;
-	//	code`$#operator($1);`;
-	function code(strings, ...expressions) {
-		let regexTranslation = strings[0];
-		for (let i = 0; i < expressions.length; i++)
-			regexTranslation += expressions[i] + strings[i + 1];
+    // Insert whitespace between literals, variables, and keywords.
+    // Makes it easier to deal with scenarios such as `a+10` or `++a`.
+    regexTranslation = regexTranslation.replaceAll(new RegExp(capturedVariableRegex, "g"), " $1 ");
+    regexTranslation = regexTranslation.replaceAll(new RegExp(`(${baseLiteralRegex})`, "g"), " $1 ");
+    regexTranslation = regexTranslation.replaceAll(new RegExp(`(${keywordRegex})`, "g"), " $1 ");
 
-		// Insert whitespace between literals, variables, and keywords.
-		// Makes it easier to deal with scenarios such as `a+10` or `++a`.
-		regexTranslation = regexTranslation.replaceAll(new RegExp(capturedVariableRegex, "g"), " $1 ")
-		regexTranslation = regexTranslation.replaceAll(new RegExp(`(${baseLiteralRegex})`, "g"), " $1 ")
-		regexTranslation = regexTranslation.replaceAll(new RegExp(`(${keywordRegex})`, "g"), " $1 ")
+    // Fix incorrect spacing added to special characters `$a`, `$1`, etc.
+    regexTranslation = regexTranslation.replaceAll("$ ", "$");
+    regexTranslation = regexTranslation.replaceAll("@ ", "@");
+    regexTranslation = regexTranslation.replaceAll("# ", "#");
 
-		// Fix incorrect spacing added to special characters `$a`, `$1`, etc.
-		regexTranslation = regexTranslation.replaceAll("$ ", "$")
-		regexTranslation = regexTranslation.replaceAll("@ ", "@")
-		regexTranslation = regexTranslation.replaceAll("# ", "#")
+    // Insert whitespace between `{}`, `()`, and `[]`.
+    // Makes it easier to deal with scenarios such as `if()` vs `if ()`.
+    regexTranslation = regexTranslation.replaceAll('(', ' ( ');
+    regexTranslation = regexTranslation.replaceAll(')', ' ) ');
+    regexTranslation = regexTranslation.replaceAll('{', ' { ');
+    regexTranslation = regexTranslation.replaceAll('}', ' } ');
+    regexTranslation = regexTranslation.replaceAll('[', ' [ ');
+    regexTranslation = regexTranslation.replaceAll(']', ' ] ');
 
-		// Insert whitespace between `{}`, `()`, and `[]`.
-		// Makes it easier to deal with scenarios such as `if()` vs `if ()`.
-		regexTranslation = regexTranslation.replaceAll('(', ' ( ');
-		regexTranslation = regexTranslation.replaceAll(')', ' ) ');
-		regexTranslation = regexTranslation.replaceAll('{', ' { ');
-		regexTranslation = regexTranslation.replaceAll('}', ' } ');
-		regexTranslation = regexTranslation.replaceAll('[', ' [ ');
-		regexTranslation = regexTranslation.replaceAll(']', ' ] ');
+    // Insert whitespace between `;`
+    regexTranslation = regexTranslation.replaceAll(";", " ; ");
 
-		// Insert whitespace between `;`
-		regexTranslation = regexTranslation.replaceAll(";", " ; ");
+    // Handles overlap between JavaScript and RegExp. For example `+` needs to be escaped because it has a different meaning in RegExp.
+    // First, safe replace the custom symbols such as `$a`, `$1`, `$#a`, `$@a`, and `$$`.
+    regexTranslation = regexTranslation.replaceAll("$", "__<rep>__");  // Arbitary replacement sequence.
+    regexTranslation = escapeRegExp(regexTranslation);
+    regexTranslation = regexTranslation.replaceAll("__<rep>__", "$");
 
-		// Handles overlap between JavaScript and RegExp. For example `+` needs to be escaped because it has a different meaning in RegExp.
-		// First, safe replace the custom symbols such as `$a`, `$1`, `$#a`, `$@a`, and `$$`.
-		regexTranslation = regexTranslation.replaceAll("$", "__<rep>__");  // Arbitary replacement sequence.
-		regexTranslation = escapeRegExp(regexTranslation);
-		regexTranslation = regexTranslation.replaceAll("__<rep>__", "$");
+    // Replace special characters, eg `$a`, `$1`, `$#a`, `$@a` etc.
+    regexTranslation = replaceVariablesWithRegex(regexTranslation);
+    regexTranslation = replaceLiteralsWithRegex(regexTranslation);
+    regexTranslation = replaceOperatorsWithRegex(regexTranslation);
+    regexTranslation = replaceKeywordsWithRegex(regexTranslation);
+    while (regexTranslation.includes("$$$"))
+        regexTranslation = regexTranslation.replace("$$$", `(?<${blockPrefix}${uniqueCaptureGroupName()}>[\\s\\S]*)`);
+    while (regexTranslation.includes("$$"))
+        regexTranslation = regexTranslation.replace("$$", `(?<${blockPrefix}${uniqueCaptureGroupName()}>[\\s\\S]*?)`);
 
-		// Replace special characters, eg `$a`, `$1`, `$#a`, `$@a` etc.
-		regexTranslation = replaceVariablesWithRegex(regexTranslation);
-		regexTranslation = replaceLiteralsWithRegex(regexTranslation);
-		regexTranslation = replaceOperatorsWithRegex(regexTranslation);
-		regexTranslation = replaceKeywordsWithRegex(regexTranslation);
-		while (regexTranslation.includes("$$$"))
-			regexTranslation = regexTranslation.replace("$$$", `(?<${blockPrefix}${randCaptureGroupName()}>[\\s\\S]*)`);
-		while (regexTranslation.includes("$$"))
-			regexTranslation = regexTranslation.replace("$$", `(?<${blockPrefix}${randCaptureGroupName()}>[\\s\\S]*?)`);
+    // Replace whitespace with lenient whitespace skips.
+    const lenientSkip = '[\\n\\r\\s]*';
+    regexTranslation = regexTranslation.replace(new RegExp('[\\n\\r\\s]+', 'g'), lenientSkip);
 
-		// Replace whitespace with lenient whitespace skips.
-		const lenientSkip = '[\\n\\r\\s]*';
-		regexTranslation = regexTranslation.replace(new RegExp('[\\n\\r\\s]+', 'g'), lenientSkip);
+    // Remove preceding and trailing whitespace matcher. Handles cases such as `if ($a == $b) { $$ }` doesn't match "if (foo == bar) { baz(); }   \n\n    "
+    if (regexTranslation.startsWith(lenientSkip))
+        regexTranslation = regexTranslation.replace('[\\n\\r\\s]*', "");
 
-		// Remove preceding and trailing whitespace matcher. Handles cases such as `if ($a == $b) { $$ }` doesn't match "if (foo == bar) { baz(); }   \n\n    "
-		if (regexTranslation.startsWith(lenientSkip))
-			regexTranslation = regexTranslation.replace('[\\n\\r\\s]*', "");
+    if (regexTranslation.endsWith(lenientSkip))
+        regexTranslation = regexTranslation.substring(0, regexTranslation.length - lenientSkip.length);
 
-		if (regexTranslation.endsWith(lenientSkip))
-			regexTranslation = regexTranslation.substring(0, regexTranslation.length - lenientSkip.length);
+    const extendedRegex = new RegExp(regexTranslation, "g");
+    extendedRegex.matchAll = function (str) {
+        return [...str.matchAll(extendedRegex)].map(parseMatch);
+    };
+    extendedRegex.matchFirst = function (str) {
+        return parseMatch(str.match(extendedRegex));
+    };
 
-		const extendedRegex = new RegExp(regexTranslation, "g");
-		extendedRegex.matchAll = function (str) {
-			const captures = [];
-			const matches = str.matchAll(extendedRegex);
+    return extendedRegex;
+}
 
-			for (const match of matches) {
-				const results = {
-					variables: [],
-					literals: [],
-					keywords: [],
-					operators: [],
-					blocks: [],
-					others: []
-				}
-				for (const [kind, value] of Object.entries(match.groups)) {
-					// Warning: `if` order matters.
-					if (kind.startsWith(blockPrefix)) {
-						results.blocks.push(value);
-					} else if (kind.startsWith(keywordPrefix)) {
-						results.keywords.push(value);
-					} else if (kind.startsWith(operatorPrefix)) {
-						results.operators.push(value);
-					} else if (kind.startsWith(literalPrefix)) {
-						results.literals.push(value);
-					} else if (kind.startsWith(variablePrefix)) {
-						results.variables.push(value);
-					} else {
-						results.others.push(value);
-					}
-				}
-				captures.push(results);
-			}
+function parseMatch(match) {
+    if (match == null || match.groups == null)
+        return null;
 
-			return captures;
-		}
+    const results = {
+        variables: [],
+        literals: [],
+        keywords: [],
+        operators: [],
+        blocks: [],
+        others: []
+    };
 
-		return extendedRegex;
-	}
+    for (const [kind, value] of Object.entries(match.groups)) {
+        // Warning: `if` order matters.
+        if (kind.startsWith(blockPrefix)) {
+            results.blocks.push(value);
+        } else if (kind.startsWith(keywordPrefix)) {
+            results.keywords.push(value);
+        } else if (kind.startsWith(operatorPrefix)) {
+            results.operators.push(value);
+        } else if (kind.startsWith(literalPrefix)) {
+            results.literals.push(value);
+        } else if (kind.startsWith(variablePrefix)) {
+            results.variables.push(value);
+        } else {
+            results.others.push(value);
+        }
+    }
 
-	// Converts code variable matchers such as $a, $b, $foo, etc with regex.
-	// Handles complex replacements such as repeated variable captures, eg `$a == $a`.
-	function replaceVariablesWithRegex(codeString) {
-		const captureRegex = /\$([a-zA-z]+[0-9_]*)/g;
-		const matches = codeString.match(captureRegex);
-		if (matches == null)
-			return codeString;
+    return results;
+}
 
-		const encounteredVariables = new Set();
-		let result = codeString;
+// Converts code variable matchers such as $a, $b, $foo, etc with regex.
+// Handles complex replacements such as repeated variable captures, eg `$a == $a`.
+function replaceVariablesWithRegex(codeString) {
+    const captureRegex = /\$([a-zA-Z]+[0-9_]*)/g;
+    const matches = codeString.match(captureRegex);
+    if (matches == null)
+        return codeString;
 
-		for (const match of matches) {
-			if (encounteredVariables.has(match)) {
-				// Replace match with back reference, eg `$foobar` becomes `\k<_foobar>`.
-				result = result.replace(match, `\\k<${variablePrefix}${match.replace('$', '')}>`);
-			} else {
-				// Replace match with variable regex, eg `$foobar` becomes `(?<_foobar>VAR_REGEX_STRING)`.
-				result = result.replace(match, createNamedVariableRegex(`${variablePrefix}${match.replace('$', '')}`))
-				encounteredVariables.add(match);
-			}
-		}
+    const encounteredVariables = new Set();
+    let result = codeString;
 
-		return result;
-	}
+    for (const match of matches) {
+        if (encounteredVariables.has(match)) {
+            // Replace match with back reference, eg `$foobar` becomes `\k<PREFIX_foobar>`.
+            result = result.replace(match, `\\k<${variablePrefix}${match.replace('$', '')}>`);
+        } else {
+            // Replace match with variable regex, eg `$foobar` becomes `(?<PREFIX_foobar>VAR_REGEX_STRING)`.
+            result = result.replace(match, createNamedVariableRegex(`${variablePrefix}${match.replace('$', '')}`))
+            encounteredVariables.add(match);
+        }
+    }
 
-	// Converts code literal matchers such as $1, $2, $99, etc with regex.
-	// Handles complex replacements such as repeated literal captures, eg `$1 == $1`.
-	function replaceLiteralsWithRegex(codeString) {
-		const captureRegex = /\$([0-9]+)/g;
-		const matches = codeString.match(captureRegex);
-		if (matches == null)
-			return codeString;
+    return result;
+}
 
-		const encounteredLiterals = new Set();
-		let result = codeString;
+// Converts code literal matchers such as $1, $2, $99, etc with regex.
+// Handles complex replacements such as repeated literal captures, eg `$1 == $1`.
+function replaceLiteralsWithRegex(codeString) {
+    const captureRegex = /\$([0-9]+)/g;
+    const matches = codeString.match(captureRegex);
+    if (matches == null)
+        return codeString;
 
-		for (const match of matches) {
-			if (encounteredLiterals.has(match)) {
-				// Replace match with back reference, eg `$1` becomes `\k<__1>`.
-				result = result.replace(match, `\\k<${literalPrefix}${match.replace('$', '')}>`);
-			} else {
-				// Replace match with literal regex, eg `$1` becomes `(?<__1>LITERAL_REGEX_STRING)`.
-				result = result.replace(match, createNamedLiteralRegex(`${literalPrefix}${match.replace('$', '')}`))
-				encounteredLiterals.add(match);
-			}
-		}
+    const encounteredLiterals = new Set();
+    let result = codeString;
 
-		return result;
-	}
+    for (const match of matches) {
+        if (encounteredLiterals.has(match)) {
+            // Replace match with back reference, eg `$1` becomes `\k<PREFIX_1>`.
+            result = result.replace(match, `\\k<${literalPrefix}${match.replace('$', '')}>`);
+        } else {
+            // Replace match with literal regex, eg `$1` becomes `(?<PREFIX_1>LITERAL_REGEX_STRING)`.
+            result = result.replace(match, createNamedLiteralRegex(`${literalPrefix}${match.replace('$', '')}`))
+            encounteredLiterals.add(match);
+        }
+    }
 
-	// Converts code operator matchers such as $@op, $@operator10, etc with regex.
-	// Handles complex replacements such as repeated operator captures, eg `$@op $a $@op`.
-	function replaceOperatorsWithRegex(codeString) {
-		const captureRegex = /\$@([a-zA-z]+[0-9_]*)/g;
-		const matches = codeString.match(captureRegex);
-		if (matches == null)
-			return codeString;
+    return result;
+}
 
-		const encounteredOperators = new Set();
-		let result = codeString;
+// Converts code operator matchers such as $@op, $@operator10, etc with regex.
+// Handles complex replacements such as repeated operator captures, eg `$@op $a $@op`.
+function replaceOperatorsWithRegex(codeString) {
+    const captureRegex = /\$@([a-zA-Z]+[0-9_]*)/g;
+    const matches = codeString.match(captureRegex);
+    if (matches == null)
+        return codeString;
 
-		for (const match of matches) {
-			if (encounteredOperators.has(match)) {
-				// Replace match with back reference, eg `$@op` becomes `\k<___op>`.
-				result = result.replace(match, `\\k<${operatorPrefix}${match.replace('$@', '')}>`);
-			} else {
-				// Replace match with literal regex, eg `$@op` becomes `(?<___op>OPERATOR_REGEX_STRING)`.
-				result = result.replace(match, createNamedOperatorRegex(`${operatorPrefix}${match.replace('$@', '')}`))
-				encounteredOperators.add(match);
-			}
-		}
+    const encounteredOperators = new Set();
+    let result = codeString;
 
-		return result;
-	}
+    for (const match of matches) {
+        if (encounteredOperators.has(match)) {
+            // Replace match with back reference, eg `$@op` becomes `\k<PREFIX_op>`.
+            result = result.replace(match, `\\k<${operatorPrefix}${match.replace('$@', '')}>`);
+        } else {
+            // Replace match with literal regex, eg `$@op` becomes `(?<PREFIX_op>OPERATOR_REGEX_STRING)`.
+            result = result.replace(match, createNamedOperatorRegex(`${operatorPrefix}${match.replace('$@', '')}`))
+            encounteredOperators.add(match);
+        }
+    }
 
-	// Converts code keyword matchers such as $#a, $#b, $#keyword1, etc with regex.
-	// Handles complex replacements such as repeated keyword captures, eg `$#keyword1 { $$ } $#keyword1`.
-	function replaceKeywordsWithRegex(codeString) {
-		const captureRegex = /\$#([a-zA-z]+[0-9_]*)/g;
-		const matches = codeString.match(captureRegex);
-		if (matches == null)
-			return codeString;
+    return result;
+}
 
-		const encounteredKeywords = new Set();
-		let result = codeString;
+// Converts code keyword matchers such as $#a, $#b, $#keyword1, etc with regex.
+// Handles complex replacements such as repeated keyword captures, eg `$#keyword1 { $$ } $#keyword1`.
+function replaceKeywordsWithRegex(codeString) {
+    const captureRegex = /\$#([a-zA-Z]+[0-9_]*)/g;
+    const matches = codeString.match(captureRegex);
+    if (matches == null)
+        return codeString;
 
-		for (const match of matches) {
-			if (encounteredKeywords.has(match)) {
-				// Replace match with back reference, eg `$#keyword` becomes `\k<____keyword>`.
-				result = result.replace(match, `\\k<${keywordPrefix}${match.replace('$#', '')}>`);
-			} else {
-				// Replace match with literal regex, eg `$#keyword` becomes `(?<____keyword>KEYWORD_REGEX_STRING)`.
-				result = result.replace(match, createNamedKeywordRegex(`${keywordPrefix}${match.replace('$#', '')}`))
-				encounteredKeywords.add(match);
-			}
-		}
+    const encounteredKeywords = new Set();
+    let result = codeString;
 
-		return result;
-	}
-//
+    for (const match of matches) {
+        if (encounteredKeywords.has(match)) {
+            // Replace match with back reference, eg `$#keyword` becomes `\k<PREFIX_keyword>`.
+            result = result.replace(match, `\\k<${keywordPrefix}${match.replace('$#', '')}>`);
+        } else {
+            // Replace match with literal regex, eg `$#keyword` becomes `(?<PREFIX_keyword>KEYWORD_REGEX_STRING)`.
+            result = result.replace(match, createNamedKeywordRegex(`${keywordPrefix}${match.replace('$#', '')}`))
+            encounteredKeywords.add(match);
+        }
+    }
+
+    return result;
+}
 </script>
 <textarea id="testInput"></textarea><button onclick="code`${document.getElementById('testInput').value};`">Test</button>
 
