@@ -19,6 +19,9 @@ function assertNotMatch(regex, str) {
 	}
 }
 
+// Test "escape hatch" regex.
+assertMatch(code`5 + 5REGEX(3+)`, `5+53`);
+
 // Test overlapping symbols, eg `+` in javascript vs `+` in regex.
 assertMatch(code`5+5*2`, `5 + 5 * 2`);
 

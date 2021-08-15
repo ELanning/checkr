@@ -143,6 +143,14 @@ export function code(strings, ...expressions) {
     for (let i = 0; i < expressions.length; i++)
         regexTranslation += expressions[i] + strings[i + 1];
 
+
+    // Preserve "escape hatch" regex, eg `function $a($$) { REGEX(....) $$ }`.
+    const regexBlocks = [];
+    for (const match of regexTranslation.matchAll(/REGEX\(([\s\S]*?)\)/g))
+        regexBlocks.push(match[1]);
+
+    regexTranslation = regexTranslation.replaceAll(/REGEX\([\s\S]*?\)/g, ":::");
+
     // Insert whitespace between literals, variables, and keywords.
     // Makes it easier to deal with scenarios such as `a+10` or `++a`.
     regexTranslation = regexTranslation.replaceAll(new RegExp(capturedVariableRegex, "g"), " $1 ");
@@ -166,7 +174,7 @@ export function code(strings, ...expressions) {
     // Insert whitespace between `;`
     regexTranslation = regexTranslation.replaceAll(";", " ; ");
 
-    // Handles overlap between JavaScript and RegExp. For example `+` needs to be escaped because it has a different meaning in RegExp.
+    // Handles overlap between JavaScript and RegExp. For example, `+` needs to be escaped because it has a different meaning in RegExp.
     // First, safe replace the custom symbols such as `$a`, `$1`, `$#a`, `$@a`, and `$$`.
     regexTranslation = regexTranslation.replaceAll("$", "__<rep>__");  // Arbitary replacement sequence.
     regexTranslation = escapeRegExp(regexTranslation);
@@ -193,21 +201,23 @@ export function code(strings, ...expressions) {
     if (regexTranslation.endsWith(lenientSkip))
         regexTranslation = regexTranslation.substring(0, regexTranslation.length - lenientSkip.length);
 
+    // Re-add "escape hatch" regex.
+    let i = 0;
+    while (regexTranslation.includes(":::"))
+        regexTranslation = regexTranslation.replace(":::", regexBlocks[i++]);
+
     const extendedRegex = new RegExp(regexTranslation, "g") as any;
     extendedRegex.matchAll = function (str) {
         return [...str.matchAll(extendedRegex)].map(parseMatch);
     };
     extendedRegex.matchFirst = function (str) {
-        return parseMatch(str.match(extendedRegex));
+        return [...str.matchAll(extendedRegex)].map(parseMatch)[0];
     };
 
     return extendedRegex;
 }
 
 function parseMatch(match) {
-    if (match == null || match.groups == null)
-        return null;
-
     const results = {
         variables: [],
         literals: [],
@@ -216,6 +226,11 @@ function parseMatch(match) {
         blocks: [],
         others: []
     };
+
+    // This can occur in situations where no named capture groups are provided.
+    // Thus there still is a "match", it's just empty.
+    if (match == null || match.groups == null)
+        return results;
 
     for (const [kind, value] of Object.entries(match.groups)) {
         // Warning: `if` order matters.
@@ -254,7 +269,7 @@ function replaceVariablesWithRegex(codeString) {
             result = result.replace(match, `\\k<${variablePrefix}${match.replace('$', '')}>`);
         } else {
             // Replace match with variable regex, eg `$foobar` becomes `(?<PREFIX_foobar>VAR_REGEX_STRING)`.
-            result = result.replace(match, createNamedVariableRegex(`${variablePrefix}${match.replace('$', '')}`))
+            result = result.replace(match, createNamedVariableRegex(`${variablePrefix}${match.replace('$', '')}`));
             encounteredVariables.add(match);
         }
     }
@@ -279,7 +294,7 @@ function replaceLiteralsWithRegex(codeString) {
             result = result.replace(match, `\\k<${literalPrefix}${match.replace('$', '')}>`);
         } else {
             // Replace match with literal regex, eg `$1` becomes `(?<PREFIX_1>LITERAL_REGEX_STRING)`.
-            result = result.replace(match, createNamedLiteralRegex(`${literalPrefix}${match.replace('$', '')}`))
+            result = result.replace(match, createNamedLiteralRegex(`${literalPrefix}${match.replace('$', '')}`));
             encounteredLiterals.add(match);
         }
     }
@@ -304,7 +319,7 @@ function replaceOperatorsWithRegex(codeString) {
             result = result.replace(match, `\\k<${operatorPrefix}${match.replace('$@', '')}>`);
         } else {
             // Replace match with literal regex, eg `$@op` becomes `(?<PREFIX_op>OPERATOR_REGEX_STRING)`.
-            result = result.replace(match, createNamedOperatorRegex(`${operatorPrefix}${match.replace('$@', '')}`))
+            result = result.replace(match, createNamedOperatorRegex(`${operatorPrefix}${match.replace('$@', '')}`));
             encounteredOperators.add(match);
         }
     }
@@ -329,7 +344,7 @@ function replaceKeywordsWithRegex(codeString) {
             result = result.replace(match, `\\k<${keywordPrefix}${match.replace('$#', '')}>`);
         } else {
             // Replace match with literal regex, eg `$#keyword` becomes `(?<PREFIX_keyword>KEYWORD_REGEX_STRING)`.
-            result = result.replace(match, createNamedKeywordRegex(`${keywordPrefix}${match.replace('$#', '')}`))
+            result = result.replace(match, createNamedKeywordRegex(`${keywordPrefix}${match.replace('$#', '')}`));
             encounteredKeywords.add(match);
         }
     }
