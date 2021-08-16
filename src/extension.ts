@@ -138,7 +138,10 @@ const warnUnderlineStyle = {
 const errorUnderlineStyle = {
 	color: 'invalid; border-bottom: dashed 1px #dc3545',
 };
-type AlertLevel = 'info' | 'warn' | 'error';
+
+// `warn` and `warning` are both supported for us with bad memories.
+// Yes, I know it makes the code less beautiful and possibly more inconsistent.
+type AlertLevel = 'info' | 'warn' | 'warning' | 'error';
 
 function underline(
 	regexOrText: RegExp | string,
@@ -197,7 +200,7 @@ function underline(
 	let underlineDecorationType;
 	if (alert === 'info') {
 		underlineDecorationType = vscode.window.createTextEditorDecorationType(infoUnderlineStyle);
-	} else if (alert === 'warn') {
+	} else if (alert === 'warn' || alert === 'warning') {
 		underlineDecorationType = vscode.window.createTextEditorDecorationType(warnUnderlineStyle);
 	} else if (alert === 'error') {
 		underlineDecorationType = vscode.window.createTextEditorDecorationType(errorUnderlineStyle);

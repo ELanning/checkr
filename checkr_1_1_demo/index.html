@@ -129,87 +129,86 @@ function uniqueCaptureGroupName() {
 //	code`if ($a == $b) { return $a; }`;
 //	code`$#operator($1);`;
 function code(strings, ...expressions) {
-    let regexTranslation = strings[0];
-    for (let i = 0; i < expressions.length; i++)
-        regexTranslation += expressions[i] + strings[i + 1];
+	let regexTranslation = strings[0];
+	for (let i = 0; i < expressions.length; i++)
+		regexTranslation += expressions[i] + strings[i + 1];
 
+	// Preserve "escape hatch" regex, eg `function $a($$) { REGEX(....) $$ }`.
+	const regexBlocks = [];
+	for (const match of regexTranslation.matchAll(/REGEX\(([\s\S]*?)\)/g))
+		regexBlocks.push(match[1]);
 
-    // Preserve "escape hatch" regex, eg `function $a($$) { REGEX(....) $$ }`.
-    const regexBlocks = [];
-    for (const match of regexTranslation.matchAll(/REGEX\(([\s\S]*?)\)/g))
-        regexBlocks.push(match[1]);
+	regexTranslation = regexTranslation.replaceAll(/REGEX\([\s\S]*?\)/g, ":::");
+	regexTranslation = regexTranslation.replaceAll("$$$", ":::::");
+	regexTranslation = regexTranslation.replaceAll("$$", "::::");
 
-    regexTranslation = regexTranslation.replaceAll(/REGEX\([\s\S]*?\)/g, ":::");
-    regexTranslation = regexTranslation.replaceAll("$$$", ":::::");
-    regexTranslation = regexTranslation.replaceAll("$$", "::::");
+	// Insert whitespace between literals, variables, and keywords.
+	// Makes it easier to deal with scenarios such as `a+10` or `++a`.
+	regexTranslation = regexTranslation.replaceAll(new RegExp(capturedVariableRegex, "g"), " $1 ");
+	regexTranslation = regexTranslation.replaceAll(new RegExp(`(${baseLiteralRegex})`, "g"), " $1 ");
+	regexTranslation = regexTranslation.replaceAll(new RegExp(`(${keywordRegex})`, "g"), " $1 ");
 
-    // Insert whitespace between literals, variables, and keywords.
-    // Makes it easier to deal with scenarios such as `a+10` or `++a`.
-    regexTranslation = regexTranslation.replaceAll(new RegExp(capturedVariableRegex, "g"), " $1 ");
-    regexTranslation = regexTranslation.replaceAll(new RegExp(`(${baseLiteralRegex})`, "g"), " $1 ");
-    regexTranslation = regexTranslation.replaceAll(new RegExp(`(${keywordRegex})`, "g"), " $1 ");
+	// Fix incorrect spacing added to special characters `$a`, `$1`, etc.
+	regexTranslation = regexTranslation.replaceAll(/\$[\s]*([a-zA-Z]+)[\s]*([0-9_]*)/g, "<DOLLARSIGN>$1$2 ").replaceAll("<DOLLARSIGN>", "$");
+	regexTranslation = regexTranslation.replaceAll(/\$[\s]*([0-9]+)/g, "<DOLLARSIGN>$1 ").replaceAll("<DOLLARSIGN>", "$");
+	regexTranslation = regexTranslation.replaceAll(/\$[\s]*@[\s]*([a-zA-Z]+)[\s]*([0-9_]*)/g, "$@$1$2 ");
+	regexTranslation = regexTranslation.replaceAll(/\$[\s]*#[\s]*([a-zA-Z]+)[\s]*([0-9_]*)/g, "$#$1$2 ");
+	regexTranslation = regexTranslation.replaceAll(":::::", "$$$$$$"); // Extra `$` are necessary due to Regex semantics.
+	regexTranslation = regexTranslation.replaceAll("::::", "$$$");
 
-    // Fix incorrect spacing added to special characters `$a`, `$1`, etc.
-    regexTranslation = regexTranslation.replaceAll(/\$[\s]*([a-zA-Z]+)[\s]*([0-9_]*)/g, "<DOLLARSIGN>$1$2 ").replaceAll("<DOLLARSIGN>", "$");
-    regexTranslation = regexTranslation.replaceAll(/\$[\s]*([0-9]+)/g, "<DOLLARSIGN>$1 ").replaceAll("<DOLLARSIGN>", "$");
-    regexTranslation = regexTranslation.replaceAll(/\$[\s]*@[\s]*([a-zA-Z]+)[\s]*([0-9_]*)/g, "$@$1$2 ");
-    regexTranslation = regexTranslation.replaceAll(/\$[\s]*#[\s]*([a-zA-Z]+)[\s]*([0-9_]*)/g, "$#$1$2 ");
-    regexTranslation = regexTranslation.replaceAll(":::::", "$$$$$$"); // Extra `$` are necessary due to Regex semantics.
-    regexTranslation = regexTranslation.replaceAll("::::", "$$$");
+	// Insert whitespace between `{}`, `()`, and `[]`.
+	// Makes it easier to deal with scenarios such as `if()` vs `if ()`.
+	regexTranslation = regexTranslation.replaceAll('(', ' ( ');
+	regexTranslation = regexTranslation.replaceAll(')', ' ) ');
+	regexTranslation = regexTranslation.replaceAll('{', ' { ');
+	regexTranslation = regexTranslation.replaceAll('}', ' } ');
+	regexTranslation = regexTranslation.replaceAll('[', ' [ ');
+	regexTranslation = regexTranslation.replaceAll(']', ' ] ');
 
-    // Insert whitespace between `{}`, `()`, and `[]`.
-    // Makes it easier to deal with scenarios such as `if()` vs `if ()`.
-    regexTranslation = regexTranslation.replaceAll('(', ' ( ');
-    regexTranslation = regexTranslation.replaceAll(')', ' ) ');
-    regexTranslation = regexTranslation.replaceAll('{', ' { ');
-    regexTranslation = regexTranslation.replaceAll('}', ' } ');
-    regexTranslation = regexTranslation.replaceAll('[', ' [ ');
-    regexTranslation = regexTranslation.replaceAll(']', ' ] ');
+	// Insert whitespace between `;`
+	regexTranslation = regexTranslation.replaceAll(";", " ; ");
 
-    // Insert whitespace between `;`
-    regexTranslation = regexTranslation.replaceAll(";", " ; ");
+	// Handles overlap between JavaScript and RegExp. For example, `+` needs to be escaped because it has a different meaning in RegExp.
+	// First, safe replace the custom symbols such as `$a`, `$1`, `$#a`, `$@a`, and `$$`.
+	regexTranslation = regexTranslation.replaceAll("$", "__<rep>__");  // Arbitary replacement sequence.
+	regexTranslation = escapeRegExp(regexTranslation);
+	regexTranslation = regexTranslation.replaceAll("__<rep>__", "$");
 
-    // Handles overlap between JavaScript and RegExp. For example, `+` needs to be escaped because it has a different meaning in RegExp.
-    // First, safe replace the custom symbols such as `$a`, `$1`, `$#a`, `$@a`, and `$$`.
-    regexTranslation = regexTranslation.replaceAll("$", "__<rep>__");  // Arbitary replacement sequence.
-    regexTranslation = escapeRegExp(regexTranslation);
-    regexTranslation = regexTranslation.replaceAll("__<rep>__", "$");
+	// Replace special characters, eg `$a`, `$1`, `$#a`, `$@a` etc.
+	regexTranslation = replaceVariablesWithRegex(regexTranslation);
+	regexTranslation = replaceLiteralsWithRegex(regexTranslation);
+	regexTranslation = replaceOperatorsWithRegex(regexTranslation);
+	regexTranslation = replaceKeywordsWithRegex(regexTranslation);
+	while (regexTranslation.includes("$$$"))
+		regexTranslation = regexTranslation.replace("$$$", `(?<${blockPrefix}${uniqueCaptureGroupName()}>[\\s\\S]*)`);
+	while (regexTranslation.includes("$$"))
+		regexTranslation = regexTranslation.replace("$$", `(?<${blockPrefix}${uniqueCaptureGroupName()}>[\\s\\S]*?)`);
 
-    // Replace special characters, eg `$a`, `$1`, `$#a`, `$@a` etc.
-    regexTranslation = replaceVariablesWithRegex(regexTranslation);
-    regexTranslation = replaceLiteralsWithRegex(regexTranslation);
-    regexTranslation = replaceOperatorsWithRegex(regexTranslation);
-    regexTranslation = replaceKeywordsWithRegex(regexTranslation);
-    while (regexTranslation.includes("$$$"))
-        regexTranslation = regexTranslation.replace("$$$", `(?<${blockPrefix}${uniqueCaptureGroupName()}>[\\s\\S]*)`);
-    while (regexTranslation.includes("$$"))
-        regexTranslation = regexTranslation.replace("$$", `(?<${blockPrefix}${uniqueCaptureGroupName()}>[\\s\\S]*?)`);
+	// Replace whitespace with lenient whitespace skips.
+	const lenientSkip = '[\\s]*';
+	regexTranslation = regexTranslation.replace(new RegExp('[\\s]+', 'g'), lenientSkip);
 
-    // Replace whitespace with lenient whitespace skips.
-    const lenientSkip = '[\\n\\r\\s]*';
-    regexTranslation = regexTranslation.replace(new RegExp('[\\n\\r\\s]+', 'g'), lenientSkip);
+	// Remove preceding and trailing whitespace matcher. Handles cases such as `if ($a == $b) { $$ }` doesn't match "if (foo == bar) { baz(); }   \n\n    "
+	if (regexTranslation.startsWith(lenientSkip))
+		regexTranslation = regexTranslation.replace('[\\s]*', "");
 
-    // Remove preceding and trailing whitespace matcher. Handles cases such as `if ($a == $b) { $$ }` doesn't match "if (foo == bar) { baz(); }   \n\n    "
-    if (regexTranslation.startsWith(lenientSkip))
-        regexTranslation = regexTranslation.replace('[\\n\\r\\s]*', "");
+	if (regexTranslation.endsWith(lenientSkip))
+		regexTranslation = regexTranslation.substring(0, regexTranslation.length - lenientSkip.length);
 
-    if (regexTranslation.endsWith(lenientSkip))
-        regexTranslation = regexTranslation.substring(0, regexTranslation.length - lenientSkip.length);
+	// Re-add "escape hatch" regex.
+	let i = 0;
+	while (regexTranslation.includes(":::"))
+		regexTranslation = regexTranslation.replace(":::", regexBlocks[i++]);
 
-    // Re-add "escape hatch" regex.
-    let i = 0;
-    while (regexTranslation.includes(":::"))
-        regexTranslation = regexTranslation.replace(":::", regexBlocks[i++]);
+	const extendedRegex = new RegExp(regexTranslation, "g");
+	extendedRegex.matchAll = function (str) {
+		return [...str.matchAll(extendedRegex)].map(parseMatch);
+	};
+	extendedRegex.matchFirst = function (str) {
+		return [...str.matchAll(extendedRegex)].map(parseMatch)[0];
+	};
 
-    const extendedRegex = new RegExp(regexTranslation, "g");
-    extendedRegex.matchAll = function (str) {
-        return [...str.matchAll(extendedRegex)].map(parseMatch);
-    };
-    extendedRegex.matchFirst = function (str) {
-        return [...str.matchAll(extendedRegex)].map(parseMatch)[0];
-    };
-
-    return extendedRegex;
+	return extendedRegex;
 }
 
 function parseMatch(match) {
@@ -346,6 +345,13 @@ function replaceKeywordsWithRegex(codeString) {
 
     return result;
 }
+
+console.log(code`$#w ($a + $1) { return $$; }`
+  .matchAll(`
+    do(foo + "baz") {
+      return getBar();
+    }
+  `));
 </script>
 <textarea id="testInput"></textarea><button onclick="code`${document.getElementById('testInput').value};`">Test</button>
 

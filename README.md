@@ -38,10 +38,10 @@ Search for "checkr" in the VS Code extensions tab (Ctrl+Shift+X to open).
 
 ```json
 "scripts": {
-  "hooks:pre-commit": "node ./hooks/checkr-hook.js",
+	"hooks:pre-commit": "node ./hooks/checkr-hook.js",
 },
 "husky": {
-  "pre-commit": "npm run hooks:pre-commit",
+	"pre-commit": "npm run hooks:pre-commit",
 },
 ```
 
@@ -51,7 +51,7 @@ That's it!
 
 Linting is a powerful tool for enforcing project consistency and finding common issues. Many tools such as [ESLint](https://eslint.org/), [JSHint](https://jshint.com/), and others exist for this purpose. However, they do not have project specific rules, and writing a [custom eslint-rule](https://eslint.org/docs/developer-guide/working-with-rules) requires more setup and prior knowledge than a `checkr.js` file.
 
-A checkr rule can result in less code review nits and catch entire classes of bugs that code itself cannot.
+A checkr rule results in **less code review nits** and **catches bugs**.
 
 ## How
 
@@ -65,19 +65,19 @@ Each function is passed the `file` being saved or opened, a function to `underli
 
 ```typescript
 params {
-    fileName: string,       // Eg "fooUtil".
-    fileExtension: string,  // Eg "js", "css", the empty string, etc.
-    fileContents: string,   // Eg "console.log('In fooUtil.js file!')".
-    filePath: string,       // Eg "C:\code\cool_project".
-    underline: (
-      regexOrText: RegExp | string, // Eg /foo*bar/g or an exact string to match, such as "foobar".
-      hoverMessage: string,         // Eg "Prefer bar".
-      alert?: "error" | "warning" | "info"
-    ) => void,
-    code: (string: string, ...expressions: string[]) => RegExp,
-    fs: NodeFileModule,                 // Eg fs.readFileSync("C:/foobar.txt");
-    path: NodePathModule,               // Eg path.join('/foo', 'bar', 'baz/asdf', 'quux', '..');
-    child_process: NodeProcessModule,   // Eg child_process.spawnSync("yarn");
+	fileName: string,       // Eg "fooUtil".
+	fileExtension: string,  // Eg "js", "css", the empty string, etc.
+	fileContents: string,   // Eg "console.log('In fooUtil.js file!')".
+	filePath: string,       // Eg "C:\code\cool_project".
+	underline: (
+		regexOrText: RegExp | string, // Eg /foo*bar/g or an exact string to match, such as "foobar".
+		hoverMessage: string,         // Eg "Prefer bar".
+		alert?: "error" | "warn" | "info"
+	) => void,
+	code: (string: string, ...expressions: string[]) => RegExp,
+	fs: NodeFileModule,                 // Eg fs.readFileSync("C:/foobar.txt");
+	path: NodePathModule,               // Eg path.join('/foo', 'bar', 'baz/asdf', 'quux', '..');
+	child_process: NodeProcessModule,   // Eg child_process.spawnSync("yarn");
 }
 ```
 
@@ -85,20 +85,109 @@ example `checkr.js` file layout
 
 ```javascript
 [
-    function check1({ fileContents, underline, code }) { ... },
-    function check2({ fileContents, fileExtension, underline, fs }) { ... },
-    function check3({ fileContents, fileName, underline, code }) { ... },
+	function check1({ fileContents, underline, code }) { ... },
+	function check2({ fileContents, fileExtension, underline, fs }) { ... },
+	function check3({ fileContents, fileName, underline, code }) { ... },
 ]
 ```
 
-## `code` Tutorial
+## `code` syntax
 
 `code` translates a simple "code finding syntax" into a `RegExp` which can be used to `underline` things.
+
+⚠️ It is not as robust as an AST parser. Complex variable names with emojis and unicode are unsupported.
+
+| Token      | Matches            | Query                               | Example Match                                                         |
+| ---------- | ------------------ | ----------------------------------- | --------------------------------------------------------------------- |
+| $a         | variable           | if ($a == $b) return { $a; }        | if (foo == bar) { return foo; }                                       |
+| $1         | literal            | $1 + $2 + $1 + $2                   | 5 + "four" + 5 + "four"                                               |
+| $@op       | operator           | 5 \$@ops1 10 \$@ops2 15 $@ops1 33   | 5 \* 10 + 15 \* 33                                                    |
+| $#key      | keyword            | $#keyword1 ($a == true)             | do (baz == true)                                                      |
+| $$         | non-greedy any     | if ($a \$\$ $a) { \$\$ return 33; } | if (foo, bar, foo) { getFoo(); getBar(); return 33; }                 |
+| $$$        | greedy any         | case $1: $$$ case $2: throw;        | case "Apples": return 1; case "Bananas": throw; case "Mangos": throw; |
+| REGEX(...) | regex escape hatch | REGEX(3+9+2\*) 5 + 5                | 33922225+5                                                            |
+
+While `code` returns a `RegExp`, it also adds two methods to the returned object.
+
+`.matchAll(str)` returns all the captured results in an easy format, or an empty array for no matches.
+
+```javascript
+code`$#w ($a + $1) { return $$; }`.matchAll(`
+		do(foo + "baz") {
+			return getBar();
+		}
+	`);
+
+// returns
+[
+	{
+		blocks: ['getBar()'],
+		keywords: ['do'],
+		literals: ['"baz"'],
+		operators: [],
+		others: [],
+		variables: ['foo'],
+	},
+];
+```
+
+`.matchFirst(str)` returns the first captured result.
+Note if there is nothing to capture **_or no matches_**, it will return an object with empty arrays.
+
+```javascript
+// No capture groups specified, eg $a, $1, $#k, etc.
+code`foo = bar;`.matchFirst(`foo = bar;`);
+
+// returns
+{
+	blocks: [],
+	keywords: [],
+	literals: [],
+	operators: [],
+	others: [],
+	variables: [],
+}
+```
 
 ## Examples
 
 ```javascript
-// TODO.
+[
+	function requirePropDestructing({ fileContents, underline, code }) {
+		const underlineComponents = (match) => {
+			if (!match.blocks[2].includes('= props;'))
+				underline(match.blocks[2], "❌ `props` must be destructed.", "error");
+		}
+
+		code`function $a($$ props $$) { $$$ }`
+			.matchAll(fileContents)
+			.forEach(underlineComponents);
+	},
+
+	function requireButtonTypeAttribute({ fileContents, underline, code }) {
+		const underlineInvalidButtons = (match) => match
+			.blocks
+			.filter((x) => !x.includes('type='))
+			.forEach(x => underline(x, "⚠️ `type` should be on buttons.", "warn"));
+
+		code`<button $$>`
+			.matchAll(fileContents)
+			.forEach(underlineInvalidButtons);
+	}
+
+	function enforceBooleanPropNaming({ fileContents, underline, code }) {
+		code`$a: PropTypes.bool$$`
+			.matchAll(fileContents)
+			.forEach(match => {
+				const is = match.variables[0].startsWith("is");
+				const has = match.variables[0].startsWith("has");
+				const should = match.variables[0].startsWith("should");
+				const isRecommended = is || has || should;
+				if (!isRecommended)
+					underline(match.variables[0], "💬 Consider prefix with `is`, `has`, or `should`.", "info");
+			})
+	}
+];
 ```
 
 ## Best Practices

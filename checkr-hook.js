@@ -180,7 +180,7 @@ function logToConsole(regexOrText, checkMessage, filePath, fileContents, lineNum
 	let alertTextColor;
 	if (alertLevel === 'error') {
 		alertTextColor = redTextColor;
-	} else if (alertLevel === 'warn') {
+	} else if (alertLevel === 'warn' || alertLevel === 'warning') {
 		alertTextColor = yellowTextColor;
 	} else if (alertLevel === 'info') {
 		alertTextColor = cyanTextColor;
