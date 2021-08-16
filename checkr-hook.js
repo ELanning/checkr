@@ -2,14 +2,15 @@
 
 const path = require('path');
 const fs = require('fs');
-const exec = require('child_process').execSync;
+const child_process = require('child_process');
+const exec = child_process.execSync;
 
 let checkStatus = 0; // Set to 1 if any step goes wrong.
 const projectRoot = process.cwd(); // Should be set to the git project root by hooks.
 const stagedFiles = exec('git diff --staged --name-only', { encoding: 'utf8' })
 	.toString()
 	.split('\n')
-	.filter(x => x);
+	.filter((x) => x);
 
 for (const stagedFile of stagedFiles) {
 	const stagedFilePath = path.resolve(projectRoot, stagedFile);
@@ -52,7 +53,8 @@ for (const stagedFile of stagedFiles) {
 			continue; // Omit checkr.js files from checks.
 		}
 
-		check(file, boundLogToConsole);
+		// 'boundUnderline' is passed again as a second arg for backwards compatibility.
+		check({ ...file, fs, path, child_process, code, underline: boundUnderline }, boundUnderline);
 	}
 }
 
@@ -84,7 +86,7 @@ function readCheckrFiles(filePathSegments) {
 				continue;
 			}
 
-			const evalChecksValid = evalChecks.every(evalCheck => evalCheck instanceof Function);
+			const evalChecksValid = evalChecks.every((evalCheck) => evalCheck instanceof Function);
 			if (!evalChecksValid) {
 				checkStatus = 1;
 				console.log(
@@ -210,7 +212,7 @@ function escapeRegExp(theString) {
 */
 function getLineNumberRanges(fileContents) {
 	let index = 0;
-	const lineNumberRanges = fileContents.split('\n').flatMap(line => {
+	const lineNumberRanges = fileContents.split('\n').flatMap((line) => {
 		const lineStartIndex = index;
 		// Typically one should avoid mutation in maps, but who's watching?
 		index = index + line.length + '\n'.length;

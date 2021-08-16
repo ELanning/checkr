@@ -1,12 +1,27 @@
 # checkr vs-code extension + git hook 🔍
 
-Write custom lint rules fast.
+**Write lint rules fast.**
 
 ```javascript
 [
-	// TODO.
-]
+	// Underline non-alphabetically ordered default props.
+	function checkDefaultPropOrder({ fileContents, underline, code }) {
+		const underlineUnsorted = (match) => {
+			const defaultProps = match.blocks[match.blocks.length - 1];
+			const defaults = code`$a: $$`.matchAll(defaultProps).flatMap((x) => x.variables);
+			const sortedDefaults = [...defaults].sort();
+			if (!defaults.every((variable, i) => variable === sortedDefaults[i])) {
+				underline(defaultProps, '⚠️ Default props must be alphabetically sorted.', 'warn');
+			}
+		};
+
+		code`function $a($$) { $$ } $$ $a.defaultProps = { $$ }`
+			.matchAll(fileContents)
+			.forEach(underlineUnsorted);
+	},
+];
 ```
+
 ![Screenshot in action](demo.png)
 
 ## Installation
@@ -21,7 +36,7 @@ Search for "checkr" in the VS Code extensions tab (Ctrl+Shift+X to open).
 2. Install [husky](https://github.com/typicode/husky) with `npm install husky --save-dev`
 3. Setup `package.json` with
 
-```
+```json
 "scripts": {
   "hooks:pre-commit": "node ./hooks/checkr-hook.js",
 },
@@ -34,9 +49,7 @@ That's it!
 
 ## Why
 
-Linting is a powerful tool for enforcing project consistency and finding common issues. Many tools such as [ESLint](https://eslint.org/), [JSHint](https://jshint.com/), and others exist for this purpose.
-
-However, they frequently do not have project specific rules, and writing a [custom eslint-rule](https://eslint.org/docs/developer-guide/working-with-rules) for trivial checks requires more setup and prior knowledge than a `checkr.js` file.
+Linting is a powerful tool for enforcing project consistency and finding common issues. Many tools such as [ESLint](https://eslint.org/), [JSHint](https://jshint.com/), and others exist for this purpose. However, they do not have project specific rules, and writing a [custom eslint-rule](https://eslint.org/docs/developer-guide/working-with-rules) requires more setup and prior knowledge than a `checkr.js` file.
 
 A checkr rule can result in less code review nits and catch entire classes of bugs that code itself cannot.
 
@@ -51,23 +64,20 @@ A `checkr.js` file should contain a single array of functions to run on file sav
 Each function is passed the `file` being saved or opened, a function to `underline` code, a function to find `code`, and a set of `utils`.
 
 ```typescript
-file {
+params {
     fileName: string,       // Eg "fooUtil".
     fileExtension: string,  // Eg "js", "css", the empty string, etc.
     fileContents: string,   // Eg "console.log('In fooUtil.js file!')".
     filePath: string,       // Eg "C:\code\cool_project".
-}
-
-function underline(
-    regexOrText: RegExp | string,   // Eg /foo*bar/g or an exact string to match, such as "foobar".
-    hoverMessage: string,           // Eg "Prefer bar".
-    alert?: "error" | "warning" | "info"
-);
-
-function code(string, ...expressions): RegExp;
-
-utils {
-
+    underline: (
+      regexOrText: RegExp | string, // Eg /foo*bar/g or an exact string to match, such as "foobar".
+      hoverMessage: string,         // Eg "Prefer bar".
+      alert?: "error" | "warning" | "info"
+    ) => void,
+    code: (string: string, ...expressions: string[]) => RegExp,
+    fs: NodeFileModule,                 // Eg fs.readFileSync("C:/foobar.txt");
+    path: NodePathModule,               // Eg path.join('/foo', 'bar', 'baz/asdf', 'quux', '..');
+    child_process: NodeProcessModule,   // Eg child_process.spawnSync("yarn");
 }
 ```
 
@@ -75,16 +85,20 @@ example `checkr.js` file layout
 
 ```javascript
 [
-    function check1(file, underline, code, utils) { ... },
-    function check2(file, underline, code, utils) { ... },
-    function check3(file, underline, code, utils) { ... },
+    function check1({ fileContents, underline, code }) { ... },
+    function check2({ fileContents, fileExtension, underline, fs }) { ... },
+    function check3({ fileContents, fileName, underline, code }) { ... },
 ]
 ```
+
+## `code` Tutorial
+
+`code` translates a simple "code finding syntax" into a `RegExp` which can be used to `underline` things.
 
 ## Examples
 
 ```javascript
-	// TODO.
+// TODO.
 ```
 
 ## Best Practices
@@ -110,10 +124,11 @@ Feel free to take any ideas or invent your own:
 
 To debug the extension:
 
- 1. `git clone` the repo.
- 1. Install `yarn` and run in it the project root. See `package.json` for a full list of commands.
- 1. Open the project in VS code, and press `F5`.
- 1. `Ctrl+R` in the debug window reloads the extension.
+1.  `git clone` the repo.
+1.  Install `yarn` and run in it the project root. See `package.json` for a full list of commands.
+1.  Run `yarn watch` to compile the TypeScript into JavaScript and "watch" for any file changes.
+1.  Open the project in VS code, and press `F5`.
+1.  `Ctrl+R` in the debug window reloads the extension.
 
 ## Contact
 
