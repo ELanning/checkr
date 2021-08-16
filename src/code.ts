@@ -126,7 +126,7 @@ function createNamedKeywordRegex(name) {
 }
 
 // Copied from MDN docs.
-function escapeRegExp(theString) {
+export function escapeRegExp(theString) {
 	return theString.replace(/[.*+\-?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
 }
 
@@ -142,7 +142,6 @@ export function code(strings, ...expressions) {
 	let regexTranslation = strings[0];
 	for (let i = 0; i < expressions.length; i++)
 		regexTranslation += expressions[i] + strings[i + 1];
-
 
 	// Preserve "escape hatch" regex, eg `function $a($$) { REGEX(....) $$ }`.
 	const regexBlocks = [];
