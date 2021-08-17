@@ -64,20 +64,23 @@ A `checkr.js` file should contain a single array of functions to run on file sav
 Each function is passed the `file` being saved or opened, a function to `underline` code, a function to find `code`, and a set of `utils`.
 
 ```typescript
-params {
-	fileName: string,       // Eg "fooUtil".
-	fileExtension: string,  // Eg "js", "css", the empty string, etc.
-	fileContents: string,   // Eg "console.log('In fooUtil.js file!')".
-	filePath: string,       // Eg "C:\code\cool_project".
+interface params {
+	fileName: string;       // Eg "fooUtil".
+	fileExtension: string;  // Eg "js", "css", the empty string, etc.
+	fileContents: string;   // Eg "console.log('In fooUtil.js file!')".
+	filePath: string;       // Eg "C:\code\cool_project".
+	
 	underline: (
 		regexOrText: RegExp | string, // Eg /foo*bar/g or an exact string to match, such as "foobar".
 		hoverMessage: string,         // Eg "Prefer bar".
 		alert?: "error" | "warn" | "info"
-	) => void,
-	code: (string: string, ...expressions: string[]) => RegExp,
-	fs: NodeFileModule,                 // Eg fs.readFileSync("C:/foobar.txt");
-	path: NodePathModule,               // Eg path.join('/foo', 'bar', 'baz/asdf', 'quux', '..');
-	child_process: NodeProcessModule,   // Eg child_process.spawnSync("yarn");
+	) => void;
+	
+	code: (string: string, ...expressions: string[]) => RegExp;
+	
+	fs: NodeFileModule;                 // Eg fs.readFileSync('C:/foobar.txt');
+	path: NodePathModule;               // Eg path.join('/foo', 'bar', 'baz/asdf', 'quux', '..');
+	child_process: NodeProcessModule;   // Eg child_process.spawnSync("yarn");
 }
 ```
 
@@ -156,7 +159,7 @@ code`foo = bar;`.matchFirst(`foo = bar;`);
 	function requirePropDestructing({ fileContents, underline, code }) {
 		const underlineComponents = (match) => {
 			if (!match.blocks[2].includes('= props;'))
-				underline(match.blocks[2], "❌ `props` must be destructed.", "error");
+				underline(code`${match.variables[0]}($$ props $$)`, "❌ `props` must be destructed.", "error");
 		}
 
 		code`function $a($$ props $$) { $$$ }`
@@ -173,7 +176,7 @@ code`foo = bar;`.matchFirst(`foo = bar;`);
 		code`<button $$>`
 			.matchAll(fileContents)
 			.forEach(underlineInvalidButtons);
-	}
+	},
 
 	function enforceBooleanPropNaming({ fileContents, underline, code }) {
 		code`$a: PropTypes.bool$$`
@@ -184,7 +187,7 @@ code`foo = bar;`.matchFirst(`foo = bar;`);
 				const should = match.variables[0].startsWith("should");
 				const isRecommended = is || has || should;
 				if (!isRecommended)
-					underline(match.variables[0], "💬 Consider prefix with `is`, `has`, or `should`.", "info");
+					underline(code`${match.variables[0]}: PropTypes.bool$$`, "💬 Consider prefix with 'is', 'has', or 'should'.", "info");
 			})
 	}
 ];
