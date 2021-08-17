@@ -10,9 +10,8 @@
 			const defaultProps = match.blocks[match.blocks.length - 1];
 			const defaults = code`$a: $$`.matchAll(defaultProps).flatMap((x) => x.variables);
 			const sortedDefaults = [...defaults].sort();
-			if (!defaults.every((variable, i) => variable === sortedDefaults[i])) {
+			if (!defaults.every((variable, i) => variable === sortedDefaults[i]))
 				underline(defaultProps, '⚠️ Default props must be alphabetically sorted.', 'warn');
-			}
 		};
 
 		code`function $a($$) { $$ } $$ $a.defaultProps = { $$ }`

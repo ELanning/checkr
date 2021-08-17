@@ -143,28 +143,43 @@ export function code(strings, ...expressions) {
 	for (let i = 0; i < expressions.length; i++)
 		regexTranslation += expressions[i] + strings[i + 1];
 
-	// Preserve "escape hatch" regex, eg `function $a($$) { REGEX(....) $$ }`.
-	const regexBlocks = [];
-	for (const match of regexTranslation.matchAll(/REGEX\(([\s\S]*?)\)/g))
-		regexBlocks.push(match[1]);
+	// Tokenize special syntax before whitespace is inserted.
+	regexTranslation = regexTranslation.replaceAll("$$$", ":🍇:");
+	regexTranslation = regexTranslation.replaceAll("$$", ":🍉:");
 
-	regexTranslation = regexTranslation.replaceAll(/REGEX\([\s\S]*?\)/g, ":::");
-	regexTranslation = regexTranslation.replaceAll("$$$", ":::::");
-	regexTranslation = regexTranslation.replaceAll("$$", "::::");
+	const variableTokens = [];
+	const literalTokens = [];
+	const operatorTokens = [];
+	const keywordTokens = [];
+	const regexTokens = [];
+	
+	let match;
+	while ((match = regexTranslation.match(/\$[a-zA-Z]+[0-9_]*/))) {
+		variableTokens.push(match);
+		regexTranslation = regexTranslation.replace(match, " :🍊: ");
+	}
+	while ((match = regexTranslation.match(/\$[0-9]+/))) {
+		literalTokens.push(match);
+		regexTranslation = regexTranslation.replace(match, " :🍍: ");
+	}
+	while ((match = regexTranslation.match(/\$@[a-zA-Z]+[0-9_]*/))) {
+		operatorTokens.push(match);
+		regexTranslation = regexTranslation.replace(match, " :🍎: ");
+	}
+	while ((match = regexTranslation.match(/\$#[a-zA-Z]+[0-9_]*/))) {
+		keywordTokens.push(match);
+		regexTranslation = regexTranslation.replace(match, " :🍓: ");
+	}
+	while((match = regexTranslation.match(/REGEX\(([\s\S]*?)\)/))) {
+		regexTokens.push(match[1]);
+		regexTranslation = regexTranslation.replace(match[0], " :🍈: ");
+	}
 
 	// Insert whitespace between literals, variables, and keywords.
 	// Makes it easier to deal with scenarios such as `a+10` or `++a`.
 	regexTranslation = regexTranslation.replaceAll(new RegExp(capturedVariableRegex, "g"), " $1 ");
 	regexTranslation = regexTranslation.replaceAll(new RegExp(`(${baseLiteralRegex})`, "g"), " $1 ");
 	regexTranslation = regexTranslation.replaceAll(new RegExp(`(${keywordRegex})`, "g"), " $1 ");
-
-	// Fix incorrect spacing added to special characters `$a`, `$1`, etc.
-	regexTranslation = regexTranslation.replaceAll(/\$[\s]*([a-zA-Z]+)[\s]*([0-9_]*)/g, "<DOLLARSIGN>$1$2 ").replaceAll("<DOLLARSIGN>", "$");
-	regexTranslation = regexTranslation.replaceAll(/\$[\s]*([0-9]+)/g, "<DOLLARSIGN>$1 ").replaceAll("<DOLLARSIGN>", "$");
-	regexTranslation = regexTranslation.replaceAll(/\$[\s]*@[\s]*([a-zA-Z]+)[\s]*([0-9_]*)/g, "$@$1$2 ");
-	regexTranslation = regexTranslation.replaceAll(/\$[\s]*#[\s]*([a-zA-Z]+)[\s]*([0-9_]*)/g, "$#$1$2 ");
-	regexTranslation = regexTranslation.replaceAll(":::::", "$$$$$$"); // Extra `$` are necessary due to Regex semantics.
-	regexTranslation = regexTranslation.replaceAll("::::", "$$$");
 
 	// Insert whitespace between `{}`, `()`, and `[]`.
 	// Makes it easier to deal with scenarios such as `if()` vs `if ()`.
@@ -179,20 +194,35 @@ export function code(strings, ...expressions) {
 	regexTranslation = regexTranslation.replaceAll(";", " ; ");
 
 	// Handles overlap between JavaScript and RegExp. For example, `+` needs to be escaped because it has a different meaning in RegExp.
-	// First, safe replace the custom symbols such as `$a`, `$1`, `$#a`, `$@a`, and `$$`.
-	regexTranslation = regexTranslation.replaceAll("$", "__<rep>__");  // Arbitary replacement sequence.
 	regexTranslation = escapeRegExp(regexTranslation);
-	regexTranslation = regexTranslation.replaceAll("__<rep>__", "$");
+
+	// Re-add tokens
+	let vi = 0;
+	while (regexTranslation.includes(":🍊:"))
+		regexTranslation = regexTranslation.replace(":🍊:", variableTokens[vi++]);
+
+	let li = 0;
+	while (regexTranslation.includes(":🍍:"))
+		regexTranslation = regexTranslation.replace(":🍍:", literalTokens[li++]);
+
+	let oi = 0;
+	while (regexTranslation.includes(":🍎:"))
+		regexTranslation = regexTranslation.replace(":🍎:", operatorTokens[oi++]);
+
+	let ki = 0;
+	while (regexTranslation.includes(":🍓:"))
+		regexTranslation = regexTranslation.replace(":🍓:", keywordTokens[ki++]);
 
 	// Replace special characters, eg `$a`, `$1`, `$#a`, `$@a` etc.
 	regexTranslation = replaceVariablesWithRegex(regexTranslation);
 	regexTranslation = replaceLiteralsWithRegex(regexTranslation);
 	regexTranslation = replaceOperatorsWithRegex(regexTranslation);
 	regexTranslation = replaceKeywordsWithRegex(regexTranslation);
-	while (regexTranslation.includes("$$$"))
-		regexTranslation = regexTranslation.replace("$$$", `(?<${blockPrefix}${uniqueCaptureGroupName()}>[\\s\\S]*)`);
-	while (regexTranslation.includes("$$"))
-		regexTranslation = regexTranslation.replace("$$", `(?<${blockPrefix}${uniqueCaptureGroupName()}>[\\s\\S]*?)`);
+	
+	while (regexTranslation.includes(":🍇:"))
+		regexTranslation = regexTranslation.replace(":🍇:", `(?<${blockPrefix}${uniqueCaptureGroupName()}>[\\s\\S]*)`);
+	while (regexTranslation.includes(":🍉:"))
+		regexTranslation = regexTranslation.replace(":🍉:", `(?<${blockPrefix}${uniqueCaptureGroupName()}>[\\s\\S]*?)`);
 
 	// Replace whitespace with lenient whitespace skips.
 	const lenientSkip = '[\\s]*';
@@ -206,9 +236,9 @@ export function code(strings, ...expressions) {
 		regexTranslation = regexTranslation.substring(0, regexTranslation.length - lenientSkip.length);
 
 	// Re-add "escape hatch" regex.
-	let i = 0;
-	while (regexTranslation.includes(":::"))
-		regexTranslation = regexTranslation.replace(":::", regexBlocks[i++]);
+	let ri = 0;
+	while (regexTranslation.includes(":🍈:"))
+		regexTranslation = regexTranslation.replace(":🍈:", regexTokens[ri++]);
 
 	const extendedRegex = new RegExp(regexTranslation, "g") as any;
 	extendedRegex.matchAll = function (str) {
@@ -255,6 +285,12 @@ function parseMatch(match) {
 
 	return results;
 }
+
+/*
+ * Note to future maintainer/self:
+ * Please do not "DRY" up the below code with a function generator (unless it can be done well).
+ * Consider a code generator if it's too tedious to add more functions. (Or refactor the whole algorithm).
+ */
 
 // Converts code variable matchers such as $a, $b, $foo, etc with regex.
 // Handles complex replacements such as repeated variable captures, eg `$a == $a`.
