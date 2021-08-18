@@ -109,16 +109,21 @@ example `checkr.js` file layout
 | $$$        | greedy any         | case $1: $$$ case $2: throw;        | case "Apples": return 1; case "Bananas": throw; case "Mangos": throw; |
 | REGEX(...) | regex escape hatch | REGEX(3+9+2\*) 5 + 5                | 33922225+5                                                            |
 
-While `code` returns a `RegExp`, it also adds two methods to the returned object.
+```
+Variable matchers: `$a`, `$Abcd`, `$foobar55`	✔️		`$`, `$44a`, `$^`	❌  
+Literal matchers: `$1`, `$2`, `$333`		✔️		`$`, `$az1`, `$\`	❌  
+Operator matchers: `$@`, `$@a`, `$@Operator22`	✔️		`$@@`, `$@2`, `$@%`	❌  
+Keyword matchers: `$#`, `$#keyword`, `$#Key1`	✔️		`$#@`, `$#5`, `$##`	❌  
+```
 
+While `code` returns a `RegExp`, it also adds two methods to the returned object.  
 `.matchAll(str)` returns all the captured results in an easy format, or an empty array for no matches.
 
 ```javascript
 code`$#w ($a + $1) { return $$; }`.matchAll(`
-		do(foo + "baz") {
-			return getBar();
-		}
-	`);
+	do(foo + "baz") {
+		return getBar();
+	}`);
 
 // returns
 [
@@ -133,7 +138,7 @@ code`$#w ($a + $1) { return $$; }`.matchAll(`
 ];
 ```
 
-`.matchFirst(str)` returns the first captured result.
+`.matchFirst(str)` returns the first captured result.  
 Note if there is nothing to capture **_or no matches_**, it will return an object with empty arrays.
 
 ```javascript
@@ -181,16 +186,19 @@ code`foo = bar;`.matchFirst(`nomatch`);
 	},
 
 	function enforceBooleanPropNaming({ fileContents, underline, code }) {
+		const underlineInvalidBooleanNames = match => {
+			const is = match.variables[0].startsWith("is");
+			const has = match.variables[0].startsWith("has");
+			const should = match.variables[0].startsWith("should");
+			const isRecommended = is || has || should;
+			const hoverMessage = "💬 Consider prefix with 'is', 'has', or 'should'.";
+			if (!isRecommended)
+				underline(code`${match.variables[0]}: PropTypes.bool$$`, hoverMessage, "info");
+		};
+		
 		code`$a: PropTypes.bool$$`
 			.matchAll(fileContents)
-			.forEach(match => {
-				const is = match.variables[0].startsWith("is");
-				const has = match.variables[0].startsWith("has");
-				const should = match.variables[0].startsWith("should");
-				const isRecommended = is || has || should;
-				if (!isRecommended)
-					underline(code`${match.variables[0]}: PropTypes.bool$$`, "💬 Consider prefix with 'is', 'has', or 'should'.", "info");
-			})
+			.forEach(underlineInvalidBooleanNames)
 	}
 ];
 ```
