@@ -34,6 +34,9 @@ while (undefined === lineMatch) {
 
 assertMatch(code`$#keyword($1$@ops1$2) { $$$ $1 $@ops1 $2 }`, `do(55 + "333") {55 + "333"}`);
 
+// Test anonymous operator and keyword matching.
+assertMatch(code`$# ($a$@$a) { $1$@$2; }`, `while (a==a) { 1 / 2; }`);
+
 // Test overlapping symbols, eg `+` in javascript vs `+` in regex.
 assertMatch(code`5+5*2`, `5 + 5 * 2`);
 
