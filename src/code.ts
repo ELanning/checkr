@@ -162,13 +162,13 @@ export function code(strings, ...expressions) {
 		literalTokens.push(match);
 		regexTranslation = regexTranslation.replace(match, " :🍍: ");
 	}
-	while ((match = regexTranslation.match(/\$@[a-zA-Z]+[0-9_]*/))) {
-		operatorTokens.push(match);
-		regexTranslation = regexTranslation.replace(match, " :🍎: ");
+	while ((match = regexTranslation.match(/\$@([a-zA-Z]+[0-9_]*)?/))) {
+		operatorTokens.push(match[0]);
+		regexTranslation = regexTranslation.replace(match[0], " :🍎: ");
 	}
-	while ((match = regexTranslation.match(/\$#[a-zA-Z]+[0-9_]*/))) {
-		keywordTokens.push(match);
-		regexTranslation = regexTranslation.replace(match, " :🍓: ");
+	while ((match = regexTranslation.match(/\$#([a-zA-Z]+[0-9_]*)?/))) {
+		keywordTokens.push(match[0]);
+		regexTranslation = regexTranslation.replace(match[0], " :🍓: ");
 	}
 	while((match = regexTranslation.match(/REGEX\(([\s\S]*?)\)/))) {
 		regexTokens.push(match[1]);
@@ -310,13 +310,14 @@ function replaceVariablesWithRegex(codeString) {
 	let result = codeString;
 
 	for (const match of matches) {
-		if (encounteredVariables.has(match)) {
+		const normalizedName = match.replace('$', '');
+		if (encounteredVariables.has(normalizedName)) {
 			// Replace match with back reference, eg `$foobar` becomes `\k<PREFIX_foobar>`.
-			result = result.replace(match, `\\k<${variablePrefix}${match.replace('$', '')}>`);
+			result = result.replace(match, `\\k<${variablePrefix}${normalizedName}>`);
 		} else {
 			// Replace match with variable regex, eg `$foobar` becomes `(?<PREFIX_foobar>VAR_REGEX_STRING)`.
-			result = result.replace(match, createNamedVariableRegex(`${variablePrefix}${match.replace('$', '')}`));
-			encounteredVariables.add(match);
+			result = result.replace(match, createNamedVariableRegex(`${variablePrefix}${normalizedName}`));
+			encounteredVariables.add(normalizedName);
 		}
 	}
 
@@ -335,7 +336,7 @@ function replaceLiteralsWithRegex(codeString) {
 	let result = codeString;
 
 	for (const match of matches) {
-		const normalizedName = match.replace('$', '') || uniqueCaptureGroupName();
+		const normalizedName = match.replace('$', '');
 		if (encounteredLiterals.has(normalizedName)) {
 			// Replace match with back reference, eg `$1` becomes `\k<PREFIX_1>`.
 			result = result.replace(match, `\\k<${literalPrefix}${normalizedName}>`);
@@ -387,7 +388,7 @@ function replaceKeywordsWithRegex(codeString) {
 	let result = codeString;
 
 	for (const match of matches) {
-		const normalizedName = match.replace('$#', '') || uniqueCaptureGroupName;
+		const normalizedName = match.replace('$#', '') || uniqueCaptureGroupName();
 		if (encounteredKeywords.has(normalizedName)) {
 			// Replace match with back reference, eg `$#keyword` becomes `\k<PREFIX_keyword>`.
 			result = result.replace(match, `\\k<${keywordPrefix}${normalizedName}>`);
