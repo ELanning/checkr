@@ -49,9 +49,8 @@ for (const stagedFile of stagedFiles) {
 	const checks = readCheckrFiles(filePathSegments);
 	for (const check of checks) {
 		const isCheckrFile = fileName === 'checkr' && fileExtension === 'js';
-		if (isCheckrFile) {
+		if (isCheckrFile)
 			continue; // Omit checkr.js files from checks.
-		}
 
 		// 'boundLogToConsole' is passed again as a second arg for backwards compatibility.
 		check({ ...file, fs, path, child_process, code, underline: boundLogToConsole }, boundLogToConsole);
