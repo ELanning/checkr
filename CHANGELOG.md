@@ -19,3 +19,7 @@ All notable changes to the "checkr" extension will be documented in this file.
 ## [1.0.3]
 
 - Update `README.md` and cleanup package files.
+
+## [1.1.0]
+
+- `code`, `fs`, and `child_process` added to `params`.
