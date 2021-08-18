@@ -103,8 +103,8 @@ example `checkr.js` file layout
 | ---------- | ------------------ | ----------------------------------- | --------------------------------------------------------------------- |
 | $a         | variable           | if ($a == $b) return { $a; }        | if (foo == bar) { return foo; }                                       |
 | $1         | literal            | $1 + $2 + $1 + $2                   | 5 + "four" + 5 + "four"                                               |
-| $@op       | operator           | 5 \$@ops1 10 \$@ops2 15 $@ops1 33   | 5 \* 10 + 15 \* 33                                                    |
-| $#key      | keyword            | $#keyword1 ($a == true)             | do (baz == true)                                                      |
+| $@       | operator           | 5 \$@ops1 10 \$@ 15 $@ops1 33   | 5 \* 10 + 15 \* 33                                                    |
+| $#      | keyword            | $# ($a == true)             | do (baz == true)                                                      |
 | $$         | non-greedy any     | if ($a \$\$ $a) { \$\$ return 33; } | if (foo, bar, foo) { getFoo(); getBar(); return 33; }                 |
 | $$$        | greedy any         | case $1: $$$ case $2: throw;        | case "Apples": return 1; case "Bananas": throw; case "Mangos": throw; |
 | REGEX(...) | regex escape hatch | REGEX(3+9+2\*) 5 + 5                | 33922225+5                                                            |
