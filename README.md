@@ -137,10 +137,13 @@ code`$#w ($a + $1) { return $$; }`.matchAll(`
 Note if there is nothing to capture **_or no matches_**, it will return an object with empty arrays.
 
 ```javascript
-// No capture groups specified, eg $a, $1, $#k, etc.
+// Match, but no capture groups specified, eg $a, $1, $#k, etc.
 code`foo = bar;`.matchFirst(`foo = bar;`);
 
-// returns
+// No match.
+code`foo = bar;`.matchFirst(`nomatch`);
+
+// both return
 {
 	blocks: [],
 	keywords: [],

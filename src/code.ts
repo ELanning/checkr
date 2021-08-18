@@ -245,7 +245,14 @@ export function code(strings, ...expressions) {
 		return [...str.matchAll(extendedRegex)].map(parseMatch);
 	};
 	extendedRegex.matchFirst = function (str) {
-		return [...str.matchAll(extendedRegex)].map(parseMatch)[0];
+		return [...str.matchAll(extendedRegex)].map(parseMatch)[0] || {
+			variables: [],
+			literals: [],
+			keywords: [],
+			operators: [],
+			blocks: [],
+			others: []
+		};
 	};
 
 	return extendedRegex;
@@ -328,23 +335,24 @@ function replaceLiteralsWithRegex(codeString) {
 	let result = codeString;
 
 	for (const match of matches) {
-		if (encounteredLiterals.has(match)) {
+		const normalizedName = match.replace('$', '') || uniqueCaptureGroupName();
+		if (encounteredLiterals.has(normalizedName)) {
 			// Replace match with back reference, eg `$1` becomes `\k<PREFIX_1>`.
-			result = result.replace(match, `\\k<${literalPrefix}${match.replace('$', '')}>`);
+			result = result.replace(match, `\\k<${literalPrefix}${normalizedName}>`);
 		} else {
 			// Replace match with literal regex, eg `$1` becomes `(?<PREFIX_1>LITERAL_REGEX_STRING)`.
-			result = result.replace(match, createNamedLiteralRegex(`${literalPrefix}${match.replace('$', '')}`));
-			encounteredLiterals.add(match);
+			result = result.replace(match, createNamedLiteralRegex(`${literalPrefix}${normalizedName}`));
+			encounteredLiterals.add(normalizedName);
 		}
 	}
 
 	return result;
 }
 
-// Converts code operator matchers such as $@op, $@operator10, etc with regex.
+// Converts code operator matchers such as $@, $@op, etc with regex.
 // Handles complex replacements such as repeated operator captures, eg `$@op $a $@op`.
 function replaceOperatorsWithRegex(codeString) {
-	const captureRegex = /\$@([a-zA-Z]+[0-9_]*)/g;
+	const captureRegex = /\$@([a-zA-Z]+[0-9_]*)?/g;
 	const matches = codeString.match(captureRegex);
 	if (matches == null)
 		return codeString;
@@ -353,23 +361,24 @@ function replaceOperatorsWithRegex(codeString) {
 	let result = codeString;
 
 	for (const match of matches) {
-		if (encounteredOperators.has(match)) {
+		const normalizedName = match.replace('$@', '') || uniqueCaptureGroupName();
+		if (encounteredOperators.has(normalizedName)) {
 			// Replace match with back reference, eg `$@op` becomes `\k<PREFIX_op>`.
-			result = result.replace(match, `\\k<${operatorPrefix}${match.replace('$@', '')}>`);
+			result = result.replace(match, `\\k<${operatorPrefix}${normalizedName}>`);
 		} else {
 			// Replace match with literal regex, eg `$@op` becomes `(?<PREFIX_op>OPERATOR_REGEX_STRING)`.
-			result = result.replace(match, createNamedOperatorRegex(`${operatorPrefix}${match.replace('$@', '')}`));
-			encounteredOperators.add(match);
+			result = result.replace(match, createNamedOperatorRegex(`${operatorPrefix}${normalizedName}`));
+			encounteredOperators.add(normalizedName);
 		}
 	}
 
 	return result;
 }
 
-// Converts code keyword matchers such as $#a, $#b, $#keyword1, etc with regex.
+// Converts code keyword matchers such as $#, $#a, $#keyword1, etc with regex.
 // Handles complex replacements such as repeated keyword captures, eg `$#keyword1 { $$ } $#keyword1`.
 function replaceKeywordsWithRegex(codeString) {
-	const captureRegex = /\$#([a-zA-Z]+[0-9_]*)/g;
+	const captureRegex = /\$#([a-zA-Z]+[0-9_]*)?/g;
 	const matches = codeString.match(captureRegex);
 	if (matches == null)
 		return codeString;
@@ -378,13 +387,14 @@ function replaceKeywordsWithRegex(codeString) {
 	let result = codeString;
 
 	for (const match of matches) {
-		if (encounteredKeywords.has(match)) {
+		const normalizedName = match.replace('$#', '') || uniqueCaptureGroupName;
+		if (encounteredKeywords.has(normalizedName)) {
 			// Replace match with back reference, eg `$#keyword` becomes `\k<PREFIX_keyword>`.
-			result = result.replace(match, `\\k<${keywordPrefix}${match.replace('$#', '')}>`);
+			result = result.replace(match, `\\k<${keywordPrefix}${normalizedName}>`);
 		} else {
 			// Replace match with literal regex, eg `$#keyword` becomes `(?<PREFIX_keyword>KEYWORD_REGEX_STRING)`.
-			result = result.replace(match, createNamedKeywordRegex(`${keywordPrefix}${match.replace('$#', '')}`));
-			encounteredKeywords.add(match);
+			result = result.replace(match, createNamedKeywordRegex(`${keywordPrefix}${normalizedName}`));
+			encounteredKeywords.add(normalizedName);
 		}
 	}
 
