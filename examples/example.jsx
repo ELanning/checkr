@@ -1,10 +1,7 @@
-// List of examples for the checkr.js file to find.
-function noJsxReturn() {
-	<div>{'Hello world'}</div>;
+function Foobar(props) {
+	return <button>{'yep'}</button>;
 }
 
-let counter = 0;
-++counter;
-
-// Pretend this is imported from some 3rd party library...
-setDocuments("foobar");
+Foobar.PropTypes = {
+	eatCake: PropTypes.bool,
+};

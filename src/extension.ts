@@ -1,11 +1,13 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as child_process from 'child_process';
+import { code, escapeRegExp } from './code';
 
 export function activate(context: vscode.ExtensionContext) {
 	const disposable = vscode.commands.registerTextEditorCommand(
 		'checkr.runAnalysis',
-		(textEditor) => {
+		textEditor => {
 			const previousDecorations = context.workspaceState.get<vscode.TextEditorDecorationType[]>(
 				textEditor.document.fileName,
 				[],
@@ -53,11 +55,11 @@ export function activate(context: vscode.ExtensionContext) {
 			const checks = readCheckrFiles(filePathSegments);
 			for (const check of checks) {
 				const isCheckrFile = fileName === 'checkr' && fileExtension === 'js';
-				if (isCheckrFile) {
+				if (isCheckrFile)
 					continue; // Omit checkr.js files from checks.
-				}
 
-				check(file, boundUnderline);
+				// 'boundUnderline' is passed again as a second arg for backwards compatibility.
+				check({ ...file, fs, path, child_process, code, underline: boundUnderline }, boundUnderline);
 			}
 		},
 	);
@@ -76,7 +78,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(disposable);
 }
 
-export function deactivate() {}
+export function deactivate() { }
 
 // Eg c$\code\coolproject should be passed as [c$, code, coolproject].
 function readCheckrFiles(filePathSegments: string[]): Function[] {
@@ -90,9 +92,8 @@ function readCheckrFiles(filePathSegments: string[]): Function[] {
 			const checkrFileContents = fs.readFileSync(path, 'utf8');
 
 			// Prevents newly created checkr.js files from throwing errors.
-			if (checkrFileContents === '') {
+			if (checkrFileContents === '')
 				continue;
-			}
 
 			// Warning: arrays of functions console.log as "[null, null, null]" when they are not actually null.
 			const evalChecks: Function[] = new Function(`return ${checkrFileContents}`)();
@@ -135,7 +136,10 @@ const warnUnderlineStyle = {
 const errorUnderlineStyle = {
 	color: 'invalid; border-bottom: dashed 1px #dc3545',
 };
-type AlertLevel = 'info' | 'warn' | 'error';
+
+// `warn` and `warning` are both supported for us with bad memories.
+// Yes, I know it makes the code less beautiful and possibly more inconsistent.
+type AlertLevel = 'info' | 'warn' | 'warning' | 'error';
 
 function underline(
 	regexOrText: RegExp | string,
@@ -169,16 +173,15 @@ function underline(
 	while ((match = regex.exec(fileContents)) != null) {
 		// Mitigate excessive backtracking cases.
 		counter++;
-		if (counter > limit) {
+		if (counter > limit)
 			break;
-		}
 
 		// Prevent regex expression that infinitely loop.
 		const matchIdentity = `${match.index}-${match[0].length}`;
 		const loopDetected = existingMatches.has(matchIdentity);
-		if (loopDetected) {
+		if (loopDetected)
 			break;
-		}
+	
 		existingMatches.add(matchIdentity);
 
 		const startPosition = textEditor.document.positionAt(match.index);
@@ -187,14 +190,13 @@ function underline(
 		decorations.push(decoration);
 	}
 
-	if (decorations.length === 0) {
+	if (decorations.length === 0)
 		return;
-	}
 
 	let underlineDecorationType;
 	if (alert === 'info') {
 		underlineDecorationType = vscode.window.createTextEditorDecorationType(infoUnderlineStyle);
-	} else if (alert === 'warn') {
+	} else if (alert === 'warn' || alert === 'warning') {
 		underlineDecorationType = vscode.window.createTextEditorDecorationType(warnUnderlineStyle);
 	} else if (alert === 'error') {
 		underlineDecorationType = vscode.window.createTextEditorDecorationType(errorUnderlineStyle);
@@ -214,9 +216,4 @@ function underline(
 		[],
 	);
 	context.workspaceState.update(fileKey, [...existingDecorations, underlineDecorationType]);
-}
-
-// Copied from MDN docs.
-function escapeRegExp(theString: string) {
-	return theString.replace(/[.*+\-?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
 }
