@@ -3,7 +3,7 @@
 		const underlineComponents = (match) => {
 			if (!match.blocks[2].includes('= props;'))
 				underline(code`${match.variables[0]}($$ props $$)`, "❌ `props` must be destructed.", "error");
-		}
+		};
 
 		code`function $a($$ props $$) { $$$ }`
 			.matchAll(fileContents)
@@ -31,6 +31,6 @@
 				const isRecommended = is || has || should;
 				if (!isRecommended)
 					underline(code`${match.variables[0]}: PropTypes.bool$$`, "💬 Consider prefix with 'is', 'has', or 'should'.", "info");
-			})
+			});
 	}
-]
+];

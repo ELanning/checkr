@@ -4,4 +4,4 @@ function Foobar(props) {
 
 Foobar.PropTypes = {
 	eatCake: PropTypes.bool,
-}
+};
