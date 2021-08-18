@@ -53,8 +53,8 @@ for (const stagedFile of stagedFiles) {
 			continue; // Omit checkr.js files from checks.
 		}
 
-		// 'boundUnderline' is passed again as a second arg for backwards compatibility.
-		check({ ...file, fs, path, child_process, code, underline: boundUnderline }, boundUnderline);
+		// 'boundLogToConsole' is passed again as a second arg for backwards compatibility.
+		check({ ...file, fs, path, child_process, code, underline: boundLogToConsole }, boundLogToConsole);
 	}
 }
 
@@ -70,9 +70,8 @@ function readCheckrFiles(filePathSegments) {
 			const checkrFileContents = fs.readFileSync(path, 'utf8');
 
 			// Prevents newly created checkr.js files from throwing errors.
-			if (checkrFileContents === '') {
+			if (checkrFileContents === '')
 				continue;
-			}
 
 			// Warning: arrays of functions console.log as "[null, null, null]" when they are not actually null.
 			const evalChecks = new Function(`return ${checkrFileContents}`)();
@@ -142,34 +141,27 @@ function logToConsole(regexOrText, checkMessage, filePath, fileContents, lineNum
 	while ((match = regex.exec(fileContents)) != null) {
 		// Mitigate excessive backtracking cases.
 		counter++;
-		if (counter > limit) {
+		if (counter > limit)
 			break;
-		}
 
 		// Prevent regex expressions that infinitely loop.
 		const matchIdentity = `${match.index}-${match[0].length}`;
 		const loopDetected = existingMatches.has(matchIdentity);
-		if (loopDetected) {
+		if (loopDetected)
 			break;
-		}
 		existingMatches.add(matchIdentity);
 
 		const startPosition = match.index;
-		const checkMatch = {
-			startPosition,
-			matchString: match[0],
-		};
+		const checkMatch = { startPosition, matchString: match[0] };
 		checkMatches.push(checkMatch);
 	}
 
-	if (checkMatches.length === 0) {
+	if (checkMatches.length === 0)
 		return;
-	}
 
 	let alertLevel = alert;
-	if (alertLevel !== 'error' && alertLevel !== 'warn' && alertLevel !== 'info') {
+	if (alertLevel !== 'error' && alertLevel !== 'warn' && alertLevel !== 'warning' && alertLevel !== 'info')
 		alertLevel = 'error'; // Default to error.
-	}
 
 	// Console color codes.
 	const redTextColor = '\x1b[31m';
@@ -178,20 +170,18 @@ function logToConsole(regexOrText, checkMessage, filePath, fileContents, lineNum
 	const resetColor = '\x1b[0m';
 
 	let alertTextColor;
-	if (alertLevel === 'error') {
+	if (alertLevel === 'error')
 		alertTextColor = redTextColor;
-	} else if (alertLevel === 'warn' || alertLevel === 'warning') {
+	else if (alertLevel === 'warn' || alertLevel === 'warning')
 		alertTextColor = yellowTextColor;
-	} else if (alertLevel === 'info') {
+	else if (alertLevel === 'info')
 		alertTextColor = cyanTextColor;
-	}
 
 	console.log(`${alertTextColor}${alertLevel}${resetColor} ${checkMessage}`);
 
 	for (const checkInfo of checkMatches) {
-		if (alert === 'error') {
+		if (alert === 'error')
 			checkStatus = 1;
-		}
 		const lineNumber = getLineNumber(checkInfo.startPosition, lineNumberRanges);
 		console.log(`\n${filePath}:${lineNumber}\n${checkInfo.matchString}`);
 	}
@@ -223,9 +213,8 @@ function getLineNumberRanges(fileContents) {
 
 	// Fix last lineEndIndex.
 	// If file contents don't end with "\n", lineEndIndex is too large.
-	if (!fileContents.endsWith('\n')) {
+	if (!fileContents.endsWith('\n'))
 		lineNumberRanges[lineNumberRanges.length - 1] -= '\n'.length;
-	}
 
 	return lineNumberRanges;
 }
@@ -233,23 +222,21 @@ function getLineNumberRanges(fileContents) {
 function getLineNumber(position, lineNumberRanges) {
 	const lastIndex = lineNumberRanges.length - 1;
 	const rangeMax = lineNumberRanges[lastIndex];
-	if (position > rangeMax) {
+	if (position > rangeMax)
 		throw new Error(`index of ${position} must not be greater than rangeMax of ${rangeMax}`);
-	}
-	if (position < 0) {
+	if (position < 0)
 		throw new Error('index must be non-negative.');
-	}
+
 
 	// Simple binary search for lowerbound.
 	let leftIndex = 0;
 	let rightIndex = lastIndex;
 	while (leftIndex <= rightIndex) {
 		const middleIndex = Math.floor((rightIndex + leftIndex) / 2);
-		if (lineNumberRanges[middleIndex] < position) {
+		if (lineNumberRanges[middleIndex] < position)
 			leftIndex = middleIndex + 1;
-		} else {
+		else
 			rightIndex = middleIndex - 1;
-		}
 	}
 
 	// Each line has a start and end position in the lineNumberRanges array,

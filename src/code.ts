@@ -105,7 +105,7 @@ const capturedVariableRegex = `(?!(?:do|if|in|for|let|new|try|var|case|else|enum
 const variablePrefix = "_";
 const literalPrefix = "__";
 const operatorPrefix = "___";
-const keywordPrefix = "____"
+const keywordPrefix = "____";
 const blockPrefix = "_____";
 
 function createNamedVariableRegex(name) {
@@ -141,7 +141,7 @@ function uniqueCaptureGroupName() {
 export function code(strings, ...expressions) {
 	let regexTranslation = strings[0];
 	for (let i = 0; i < expressions.length; i++)
-		regexTranslation += expressions[i] + strings[i + 1];
+		regexTranslation += expressions[i] + strings[i+1];
 
 	// Tokenize special syntax before whitespace is inserted.
 	regexTranslation = regexTranslation.replaceAll("$$$", ":🍇:");
@@ -268,19 +268,18 @@ function parseMatch(match) {
 
 	for (const [kind, value] of Object.entries(match.groups)) {
 		// Warning: `if` order matters.
-		if (kind.startsWith(blockPrefix)) {
+		if (kind.startsWith(blockPrefix))
 			results.blocks.push(value);
-		} else if (kind.startsWith(keywordPrefix)) {
+		else if (kind.startsWith(keywordPrefix))
 			results.keywords.push(value);
-		} else if (kind.startsWith(operatorPrefix)) {
+		else if (kind.startsWith(operatorPrefix))
 			results.operators.push(value);
-		} else if (kind.startsWith(literalPrefix)) {
+		else if (kind.startsWith(literalPrefix))
 			results.literals.push(value);
-		} else if (kind.startsWith(variablePrefix)) {
+		else if (kind.startsWith(variablePrefix))
 			results.variables.push(value);
-		} else {
+		else
 			results.others.push(value);
-		}
 	}
 
 	return results;

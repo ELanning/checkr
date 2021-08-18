@@ -7,7 +7,7 @@ import { code, escapeRegExp } from './code';
 export function activate(context: vscode.ExtensionContext) {
 	const disposable = vscode.commands.registerTextEditorCommand(
 		'checkr.runAnalysis',
-		(textEditor) => {
+		textEditor => {
 			const previousDecorations = context.workspaceState.get<vscode.TextEditorDecorationType[]>(
 				textEditor.document.fileName,
 				[],
@@ -55,9 +55,8 @@ export function activate(context: vscode.ExtensionContext) {
 			const checks = readCheckrFiles(filePathSegments);
 			for (const check of checks) {
 				const isCheckrFile = fileName === 'checkr' && fileExtension === 'js';
-				if (isCheckrFile) {
+				if (isCheckrFile)
 					continue; // Omit checkr.js files from checks.
-				}
 
 				// 'boundUnderline' is passed again as a second arg for backwards compatibility.
 				check({ ...file, fs, path, child_process, code, underline: boundUnderline }, boundUnderline);
@@ -93,9 +92,8 @@ function readCheckrFiles(filePathSegments: string[]): Function[] {
 			const checkrFileContents = fs.readFileSync(path, 'utf8');
 
 			// Prevents newly created checkr.js files from throwing errors.
-			if (checkrFileContents === '') {
+			if (checkrFileContents === '')
 				continue;
-			}
 
 			// Warning: arrays of functions console.log as "[null, null, null]" when they are not actually null.
 			const evalChecks: Function[] = new Function(`return ${checkrFileContents}`)();
@@ -175,16 +173,15 @@ function underline(
 	while ((match = regex.exec(fileContents)) != null) {
 		// Mitigate excessive backtracking cases.
 		counter++;
-		if (counter > limit) {
+		if (counter > limit)
 			break;
-		}
 
 		// Prevent regex expression that infinitely loop.
 		const matchIdentity = `${match.index}-${match[0].length}`;
 		const loopDetected = existingMatches.has(matchIdentity);
-		if (loopDetected) {
+		if (loopDetected)
 			break;
-		}
+	
 		existingMatches.add(matchIdentity);
 
 		const startPosition = textEditor.document.positionAt(match.index);
@@ -193,9 +190,8 @@ function underline(
 		decorations.push(decoration);
 	}
 
-	if (decorations.length === 0) {
+	if (decorations.length === 0)
 		return;
-	}
 
 	let underlineDecorationType;
 	if (alert === 'info') {
