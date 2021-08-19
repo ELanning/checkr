@@ -226,7 +226,6 @@ function getLineNumber(position, lineNumberRanges) {
 	if (position < 0)
 		throw new Error('index must be non-negative.');
 
-
 	// Simple binary search for lowerbound.
 	let leftIndex = 0;
 	let rightIndex = lastIndex;
