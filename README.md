@@ -2,25 +2,7 @@
 
 **Write lint rules fast.**
 
-```javascript
-[
-	// Underline non-alphabetically ordered default props.
-	function checkDefaultPropOrder({ fileContents, underline, code }) {
-		const underlineUnsorted = (match) => {
-			const defaultProps = match.blocks[match.blocks.length - 1];
-			const defaults = code`$a: $$`.matchAll(defaultProps).flatMap((x) => x.variables);
-			const sortedDefaults = [...defaults].sort();
-			if (defaults.some((variable, i) => variable !== sortedDefaults[i]))
-				underline(defaultProps, '⚠️ Default props must be alphabetically sorted.', 'warn');
-		};
-
-		code`function $a($$) { $$ } $$ $a.defaultProps = { $$ }`
-			.matchAll(fileContents)
-			.forEach(underlineUnsorted);
-	},
-];
-```
-
+![Example checkr.js rule](header.png)
 ![Screenshot in action](demo.png)
 
 ## Installation
