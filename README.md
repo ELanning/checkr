@@ -146,7 +146,7 @@ code`foo = bar;`.matchFirst(`nomatch`);
 ```javascript
 [
 	function requirePropDestructing({ fileContents, underline, code }) {
-		const underlineComponents = (match) => {
+		const underlineComponents = match => {
 			if (!match.blocks[2].includes('= props;'))
 				underline(code`${match.variables[0]}($$ props $$)`, "❌ `props` must be destructed.", "error");
 		}
@@ -157,9 +157,9 @@ code`foo = bar;`.matchFirst(`nomatch`);
 	},
 
 	function requireButtonTypeAttribute({ fileContents, underline, code }) {
-		const underlineInvalidButtons = (match) => match
+		const underlineInvalidButtons = match => match
 			.blocks
-			.filter((x) => !x.includes('type='))
+			.filter(x => !x.includes('type='))
 			.forEach(x => underline(x, "⚠️ `type` should be on buttons.", "warn"));
 
 		code`<button $$>`
