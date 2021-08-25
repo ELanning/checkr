@@ -186,11 +186,6 @@ function logToConsole(regexOrText, checkMessage, filePath, fileContents, lineNum
 	}
 }
 
-// Copied from MDN docs.
-function escapeRegExp(theString) {
-	return theString.replace(/[.*+\-?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
-}
-
 /*
 * Input: "hello\n World how\n are you?"
 * Output: [
