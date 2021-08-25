@@ -243,8 +243,6 @@ function getLineNumber(position, lineNumberRanges) {
 	return lineNumber;
 }
 
-process.exit(checkStatus);
-
 /********* `code` support *********/
 /** Copied from the typescript output folder. */
 
@@ -605,3 +603,5 @@ function replaceKeywordsWithRegex(codeString) {
     }
     return result;
 }
+
+process.exit(checkStatus);
