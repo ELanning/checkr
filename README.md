@@ -186,7 +186,7 @@ code`foo = bar;`.matchFirst(`nomatch`);
 - Prefer checks that are actionable and accurate over 90% of the time.
 
 [More best practices here.](https://cacm.acm.org/magazines/2018/4/226371-lessons-from-building-static-analysis-tools-at-google/fulltext)  
-[Test regex patterns here.](https://www.regextester.com)  
+[Test `code` patterns here.](https://www.itslit.fr)  
 [Test regex patterns here.](https://www.regextester.com)  
 
 ## Contributing
