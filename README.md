@@ -52,7 +52,7 @@ interface params {
 	
 	fs: NodeFileModule;                 // Eg fs.readFileSync('C:/foobar.txt');
 	path: NodePathModule;               // Eg path.join('/foo', 'bar', 'baz/asdf', 'quux', '..');
-	child_process: NodeProcessModule;   // Eg child_process.spawnSync("yarn");
+	child_process: NodeProcessModule;   // Eg child_process.execSync('git status', { encoding: 'utf8' });
 }
 ```
 
@@ -67,9 +67,11 @@ example `checkr.js` file layout
 ```
 
 ## `code` syntax
-
-`code` translates a simple "code finding syntax" into a `RegExp` which can be used to `underline` things.
-
+  
+`code` translates a simple "code finding syntax" into a `RegExp` which can be used to `underline` things.  
+**[Play around with `code` syntax here](https://www.itslit.fr/)**  
+  
+<br/>
 ⚠️ It is not as robust as an AST parser. Complex variable names with emojis and unicode are unsupported.
 
 | Token      | Matches            | Query                               | Example Match                                                         |
@@ -184,7 +186,8 @@ code`foo = bar;`.matchFirst(`nomatch`);
 - Prefer checks that are actionable and accurate over 90% of the time.
 
 [More best practices here.](https://cacm.acm.org/magazines/2018/4/226371-lessons-from-building-static-analysis-tools-at-google/fulltext)  
-[Test regex patterns here.](https://www.regextester.com)
+[Test regex patterns here.](https://www.regextester.com)  
+[Test regex patterns here.](https://www.regextester.com)  
 
 ## Contributing
 
